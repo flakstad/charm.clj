@@ -155,16 +155,16 @@
 
 (defn read-event
   "Read a single input event from the terminal.
-   Returns an event map with :type and other keys.
+   Returns an event map with :type and other keys, or nil on timeout.
 
    Options:
-     :timeout-ms - Timeout for reading continuation bytes (default 50)"
+     :timeout-ms - Timeout for reading (default 50)"
   [^Terminal terminal & {:keys [timeout-ms] :or {timeout-ms 50}}]
   (let [reader (.reader terminal)
-        c (read-char-blocking reader)]
+        c (read-char reader timeout-ms)]
     (cond
       (neg? c)
-      nil  ; EOF
+      nil  ; Timeout or EOF
 
       (= c ESC)
       (parse-input c (read-escape-sequence reader timeout-ms))

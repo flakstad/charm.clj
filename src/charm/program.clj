@@ -94,39 +94,48 @@
       nil)))
 
 (defn- start-input-loop!
-  "Start reading terminal input and sending to message channel."
+  "Start reading terminal input and sending to message channel.
+   Returns the thread so it can be interrupted on shutdown."
   [^Terminal terminal msg-chan running?]
-  (go-loop []
-    (when @running?
-      (try
-        (when-let [event (input/read-event terminal :timeout-ms 50)]
-          ;; Convert input event to message
-          (let [msg (cond
-                      (= :mouse (:type event))
-                      (msg/mouse (:button event) (:x event) (:y event)
-                                 :action (:action event)
-                                 :ctrl (:ctrl event)
-                                 :alt (:alt event)
-                                 :shift (:shift event))
+  (let [thread (Thread.
+                (fn []
+                  (while @running?
+                    (try
+                      (when-let [event (input/read-event terminal :timeout-ms 100)]
+                        ;; Convert input event to message
+                        (let [m (cond
+                                  (= :mouse (:type event))
+                                  (msg/mouse (:button event) (:x event) (:y event)
+                                             :action (:action event)
+                                             :ctrl (:ctrl event)
+                                             :alt (:alt event)
+                                             :shift (:shift event))
 
-                      (= :focus (:type event))
-                      (msg/focus)
+                                  (= :focus (:type event))
+                                  (msg/focus)
 
-                      (= :blur (:type event))
-                      (msg/blur)
+                                  (= :blur (:type event))
+                                  (msg/blur)
 
-                      :else
-                      (msg/key-press (:type event)
-                                     :runes (:runes event)
-                                     :ctrl (:ctrl event)
-                                     :alt (:alt event)
-                                     :shift (:shift event)))]
-            (when msg
-              (>! msg-chan msg))))
-        (catch Exception _
-          ;; Ignore read errors during shutdown
-          nil))
-      (recur))))
+                                  :else
+                                  ;; For :runes type, use the runes as key; otherwise use type
+                                  (let [key (if (= :runes (:type event))
+                                              (:runes event)
+                                              (:type event))]
+                                    (msg/key-press key
+                                                   :ctrl (:ctrl event)
+                                                   :alt (:alt event)
+                                                   :shift (:shift event))))]
+                          (when m
+                            (a/put! msg-chan m))))
+                      (catch InterruptedException _
+                        (reset! running? false))
+                      (catch Exception _
+                        ;; Ignore read errors during shutdown
+                        nil)))))]
+    (.setDaemon thread true)
+    (.start thread)
+    thread))
 
 (defn- check-window-size!
   "Check terminal size and send resize message if changed."
@@ -208,52 +217,58 @@
       ;; Check initial window size
       (check-window-size! terminal msg-chan last-size)
 
-      ;; Start input loop
-      (start-input-loop! terminal msg-chan running?)
+      ;; Start input loop (returns thread)
+      (let [input-thread (start-input-loop! terminal msg-chan running?)]
 
-      ;; Execute init command
-      (execute-cmd! init-cmd msg-chan)
+        ;; Execute init command
+        (execute-cmd! init-cmd msg-chan)
 
-      ;; Render initial view
-      (render/render! renderer (view @state))
+        ;; Render initial view
+        (render/render! renderer (view @state))
 
-      ;; Main event loop
-      (loop []
-        (when @running?
-          (when-let [m (a/<!! (a/timeout 10))]
-            ;; Timeout - just continue
-            nil)
+        ;; Drain any initial window-size message to avoid double render
+        (a/poll! msg-chan)
 
-          (when-let [m (a/poll! msg-chan)]
-            (cond
-              ;; Quit message
-              (msg/quit? m)
-              (reset! running? false)
+        ;; Main event loop
+        (loop []
+         (when @running?
+           (when-let [m (a/<!! (a/timeout 10))]
+             ;; Timeout - just continue
+             nil)
 
-              ;; Error message
-              (= :error (:type m))
-              (do
-                (reset! running? false)
-                (throw (:error m)))
+           (when-let [m (a/poll! msg-chan)]
+             (cond
+               ;; Quit message
+               (msg/quit? m)
+               (reset! running? false)
 
-              ;; Window size
-              (= :window-size (:type m))
-              (do
-                (render/update-size! renderer (:width m) (:height m))
-                (let [[new-state cmd] (update @state m)]
-                  (reset! state new-state)
-                  (execute-cmd! cmd msg-chan)
-                  (render/render! renderer (view new-state))))
+               ;; Error message
+               (= :error (:type m))
+               (do
+                 (reset! running? false)
+                 (throw (:error m)))
 
-              ;; Regular message
-              :else
-              (let [[new-state cmd] (update @state m)]
-                (reset! state new-state)
-                (execute-cmd! cmd msg-chan)
-                (render/render! renderer (view new-state)))))
+               ;; Window size
+               (= :window-size (:type m))
+               (do
+                 (render/update-size! renderer (:width m) (:height m))
+                 (let [[new-state cmd] (update @state m)]
+                   (reset! state new-state)
+                   (execute-cmd! cmd msg-chan)
+                   (render/render! renderer (view new-state))))
 
-          (when @running?
-            (recur))))
+               ;; Regular message
+               :else
+               (let [[new-state cmd] (update @state m)]
+                 (reset! state new-state)
+                 (execute-cmd! cmd msg-chan)
+                 (render/render! renderer (view new-state)))))
+
+           (when @running?
+             (recur))))
+
+        ;; Interrupt input thread
+        (.interrupt input-thread))
 
       ;; Return final state
       @state

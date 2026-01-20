@@ -2,7 +2,9 @@
   "Message types for charm.clj TUI applications.
 
    Messages are plain maps with a :type key for easy pattern matching.
-   Use factory functions to create messages and predicates to check types.")
+   Use factory functions to create messages and predicates to check types." 
+  (:require
+   [clojure.string :as string]))
 
 ;; ---------------------------------------------------------------------------
 ;; Message Factories
@@ -117,10 +119,37 @@
 
 (defn key-match?
   "Check if a key-press message matches the given key.
-   Key can be a string or keyword."
+
+   Key can be:
+   - A string like \"q\", \"a\" (matches character keys)
+   - A keyword like :enter, :up, :tab (matches special keys)
+   - A pattern like \"ctrl+c\" (matches with modifiers)"
   [msg key]
-  (and (key-press? msg)
-       (= (name key) (:key msg))))
+  (when (key-press? msg)
+    (let [msg-key (:key msg)]
+      (cond
+        ;; Pattern with modifiers like "ctrl+c"
+        (and (string? key) (string/includes? key "+"))
+        (let [parts (string/split (string/lower-case key) #"\+")
+              mods (set (butlast parts))
+              key-part (last parts)]
+          (and (if (contains? mods "ctrl") (:ctrl msg) (not (:ctrl msg)))
+               (if (contains? mods "alt") (:alt msg) (not (:alt msg)))
+               (if (contains? mods "shift") (:shift msg) (not (:shift msg)))
+               (or (= key-part (if (keyword? msg-key) (name msg-key) msg-key))
+                   (= key-part (str msg-key)))))
+
+        ;; Keyword matches keyword or string
+        (keyword? key)
+        (or (= key msg-key)
+            (= (name key) msg-key))
+
+        ;; String matches string or keyword name
+        (string? key)
+        (or (= key msg-key)
+            (= key (when (keyword? msg-key) (name msg-key))))
+
+        :else false))))
 
 (defn ctrl?
   "Check if ctrl modifier is set."
