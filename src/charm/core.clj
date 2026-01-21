@@ -29,7 +29,11 @@
             [charm.style.border :as border]
             [charm.components.spinner :as spinner]
             [charm.components.text-input :as text-input]
-            [charm.components.list :as list-comp]))
+            [charm.components.list :as list-comp]
+            [charm.components.paginator :as paginator]
+            [charm.components.timer :as timer]
+            [charm.components.progress :as progress]
+            [charm.components.help :as help]))
 
 ;; ---------------------------------------------------------------------------
 ;; Re-exported from charm.message
@@ -166,3 +170,61 @@
 (def list-selected-index list-comp/selected-index)
 (def list-set-items list-comp/set-items)
 (def list-select list-comp/select)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.components.paginator
+;; ---------------------------------------------------------------------------
+
+(def paginator paginator/paginator)
+(def paginator-init paginator/paginator-init)
+(def paginator-update paginator/paginator-update)
+(def paginator-view paginator/paginator-view)
+(def paginator-page paginator/page)
+(def paginator-total-pages paginator/total-pages)
+(def paginator-set-page paginator/set-page)
+(def paginator-set-total-pages paginator/set-total-pages)
+(def paginator-next-page paginator/next-page)
+(def paginator-prev-page paginator/prev-page)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.components.timer
+;; ---------------------------------------------------------------------------
+
+(def timer timer/timer)
+(def timer-init timer/timer-init)
+(def timer-update timer/timer-update)
+(def timer-view timer/timer-view)
+(def timer-timeout timer/timeout)
+(def timer-running? timer/running?)
+(def timer-timed-out? timer/timed-out?)
+(def timer-start timer/start)
+(def timer-stop timer/stop)
+(def timer-toggle timer/toggle)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.components.progress
+;; ---------------------------------------------------------------------------
+
+(def progress-bar progress/progress-bar)
+(def progress-init progress/progress-init)
+(def progress-update progress/progress-update)
+(def progress-view progress/progress-view)
+(def progress-percent progress/percent)
+(def progress-set progress/set-progress)
+(def progress-increment progress/increment)
+(def progress-decrement progress/decrement)
+(def progress-complete? progress/complete?)
+(def progress-bar-styles progress/bar-styles)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.components.help
+;; ---------------------------------------------------------------------------
+
+(def help help/help)
+(def help-init help/help-init)
+(def help-update help/help-update)
+(def help-view help/help-view)
+(def help-bindings help/bindings)
+(def help-set-bindings help/set-bindings)
+(def help-toggle-show-all help/toggle-show-all)
+(def help-from-pairs help/from-pairs)
