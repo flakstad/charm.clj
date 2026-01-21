@@ -26,7 +26,10 @@
             [charm.program :as prog]
             [charm.style.core :as style]
             [charm.style.color :as color]
-            [charm.style.border :as border]))
+            [charm.style.border :as border]
+            [charm.components.spinner :as spinner]
+            [charm.components.text-input :as text-input]
+            [charm.components.list :as list-comp]))
 
 ;; ---------------------------------------------------------------------------
 ;; Re-exported from charm.message
@@ -119,3 +122,47 @@
      {:init ~init
       :update ~update
       :view ~view}))
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.components.spinner
+;; ---------------------------------------------------------------------------
+
+(def spinner spinner/spinner)
+(def spinner-init spinner/spinner-init)
+(def spinner-update spinner/spinner-update)
+(def spinner-view spinner/spinner-view)
+(def spinner-types spinner/spinner-types)
+(def spinning? spinner/spinning?)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.components.text-input
+;; ---------------------------------------------------------------------------
+
+(def text-input text-input/text-input)
+(def text-input-init text-input/text-input-init)
+(def text-input-update text-input/text-input-update)
+(def text-input-view text-input/text-input-view)
+(def text-input-value text-input/value)
+(def text-input-set-value text-input/set-value)
+(def text-input-focus text-input/focus)
+(def text-input-blur text-input/blur)
+(def text-input-reset text-input/reset)
+
+;; Echo modes
+(def echo-normal text-input/echo-normal)
+(def echo-password text-input/echo-password)
+(def echo-none text-input/echo-none)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.components.list
+;; ---------------------------------------------------------------------------
+
+(def item-list list-comp/item-list)
+(def list-init list-comp/list-init)
+(def list-update list-comp/list-update)
+(def list-view list-comp/list-view)
+(def list-items list-comp/items)
+(def list-selected-item list-comp/selected-item)
+(def list-selected-index list-comp/selected-index)
+(def list-set-items list-comp/set-items)
+(def list-select list-comp/select)
