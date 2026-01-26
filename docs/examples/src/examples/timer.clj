@@ -87,16 +87,26 @@
 ;; ---------------------------------------------------------------------------
 
 (def name-style
-  (charm/style :fg charm/cyan :bold true))
-
-(def bar-full-style
-  (charm/style :fg charm/cyan))
-
-(def bar-empty-style
-  (charm/style :fg 240))
+  (charm/style :fg (charm/rgb 180 140 255) :bold true))
 
 (def time-style
-  (charm/style :fg 245))
+  (charm/style :fg (charm/rgb 140 140 140)))
+
+(defn gradient-color
+  "Interpolate from cyan to magenta based on progress.
+   When dim? is true, returns a darker version."
+  ([progress] (gradient-color progress false))
+  ([progress dim?]
+   (let [p (double progress)
+         ;; Start: cyan (0, 220, 255) -> End: magenta (255, 100, 255)
+         r (+ 0 (* p 255))
+         g (- 220 (* p 120))
+         b 255
+         ;; Apply dimming factor (0.3 = 30% brightness)
+         factor (if dim? 0.8 1.0)]
+     (charm/rgb (int (* r factor))
+                (int (* g factor))
+                (int (* b factor))))))
 
 (defn view [state]
   (let [{:keys [name timer total-ms]} state
@@ -105,9 +115,9 @@
         progress (if (pos? total-ms) (/ elapsed total-ms) 0.0)
         bar (charm/progress-bar :width 30
                                 :percent progress
-                                :bar-style :thin
-                                :full-style bar-full-style
-                                :empty-style bar-empty-style)]
+                                :bar-style :thick
+                                :full-style (charm/style :fg (gradient-color progress))
+                                :empty-style (charm/style :fg (gradient-color progress true)))]
     (str (when name
            (str (charm/render name-style name) "\n"))
          (charm/progress-view bar)
