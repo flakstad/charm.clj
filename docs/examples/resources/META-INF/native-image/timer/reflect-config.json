@@ -60,21 +60,5 @@
     "name": "java.io.Writer",
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true
-  },
-  {
-    "name": "com.ibm.icu.text.BreakIterator",
-    "allDeclaredMethods": true
-  },
-  {
-    "name": "com.ibm.icu.text.RuleBasedBreakIterator",
-    "allDeclaredConstructors": true
-  },
-  {
-    "name": "com.ibm.icu.text.BreakIteratorFactory",
-    "allDeclaredConstructors": true
-  },
-  {
-    "name": "com.ibm.icu.impl.ICUResourceBundle",
-    "allDeclaredMethods": true
   }
 ]

@@ -236,9 +236,9 @@ charm.clj/
 
 ## Dependencies
 
+- JDK 11+ (17+ recommended for full Unicode/emoji support)
 - Clojure 1.12+
 - [JLine 3](https://github.com/jline/jline3) - Terminal I/O
-- [ICU4J](https://github.com/unicode-org/icu) - Unicode text width
 - [core.async](https://github.com/clojure/core.async) - Async message handling
 
 ## License

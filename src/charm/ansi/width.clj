@@ -9,7 +9,7 @@
   (:require
    [clojure.string :as str]) 
   (:import
-   [com.ibm.icu.text BreakIterator]
+   [java.text BreakIterator]
    [java.lang Character$UnicodeBlock]))
 
 ;; ---------------------------------------------------------------------------

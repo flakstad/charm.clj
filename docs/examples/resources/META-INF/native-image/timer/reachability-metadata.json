@@ -787,18 +787,6 @@
       "type": "clojure.walk__init"
     },
     {
-      "type": "com.ibm.icu.text.BreakIterator"
-    },
-    {
-      "type": "com.ibm.icu.text.BreakIteratorFactory",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
       "type": "double[]"
     },
     {
@@ -1975,21 +1963,6 @@
     },
     {
       "glob": "clojure/walk__init.class"
-    },
-    {
-      "glob": "com/ibm/icu/ICUConfig.properties"
-    },
-    {
-      "glob": "com/ibm/icu/impl/data/icudata/brkitr/char.brk"
-    },
-    {
-      "glob": "com/ibm/icu/impl/data/icudata/brkitr/en.res"
-    },
-    {
-      "glob": "com/ibm/icu/impl/data/icudata/brkitr/en_US.res"
-    },
-    {
-      "glob": "com/ibm/icu/impl/data/icudata/brkitr/root.res"
     },
     {
       "glob": "data_readers.clj"

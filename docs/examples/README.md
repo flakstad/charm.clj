@@ -39,7 +39,7 @@ clj -M:counter
 
 ```bash
 clj -T:build all
-native-image -jar target/timer.jar -o target/timer
-./target/timer -n Pomodoro 30m
+native-image -jar target/timer.jar -o timer
+./timer -n Pomodoro 30m
 ```
 
