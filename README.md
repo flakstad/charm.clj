@@ -1,8 +1,15 @@
 # charm.clj
 
+![Status](https://img.shields.io/badge/status-alpha-orange)
+
 A Clojure TUI (Terminal User Interface) library inspired by [Bubble Tea](https://github.com/charmbracelet/bubbletea).
 
 Build terminal applications using the Elm Architecture (Model-Update-View pattern) with a simple, functional API.
+
+## Status
+
+This library is vibecoded and very early. It works for the examples but please let me know if you encounter any
+issues. I am planning to use it for something more sophisticated. Please expect breaking changes.
 
 ## Features
 
