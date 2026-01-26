@@ -1,6 +1,8 @@
 (ns examples.spinner-demo
   "Demonstrates all 14 spinner animation types side by side."
-  (:require [charm.core :as charm]))
+  (:require
+   [charm.core :as charm]
+   [clojure.string :as str]))
 
 (def spinner-names
   "All available spinner types."
@@ -82,7 +84,7 @@
                   (concat col2 (repeat nil)))]
     (str (charm/render title-style "Spinner Demo") "\n"
          (charm/render (charm/style :fg 240) "All 14 spinner animation types") "\n\n"
-         (clojure.string/join "\n" rows)
+         (str/join "\n" rows)
          "\n\n"
          (charm/render (charm/style :fg 240) "Press q to quit"))))
 

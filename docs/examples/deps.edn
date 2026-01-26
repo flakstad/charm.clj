@@ -1,0 +1,17 @@
+{:paths ["src"]
+ :deps {de.timokramer/charm.clj {:local/root "../../"}
+        com.github.clj-easy/graal-build-time {:mvn/version "1.0.5"}}
+ :aliases
+ {:timer {:main-opts ["-m" "examples.timer"]}
+  :todos {:main-opts ["-m" "examples.todos"]}
+  :download {:main-opts ["-m" "examples.download"]}
+  :countdown {:main-opts ["-m" "examples.countdown"]}
+  :file-browser {:main-opts ["-m" "examples.file-browser"]}
+  :form {:main-opts ["-m" "examples.form"]}
+  :spinner-demo {:main-opts ["-m" "examples.spinner-demo"]}
+  :counter {:main-opts ["-m" "examples.counter"]}
+
+  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.5"}
+                 com.github.clj-easy/graal-build-time {:mvn/version "1.0.5"}}
+          :extra-paths ["resources"]
+          :ns-default build}}}

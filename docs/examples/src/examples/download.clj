@@ -1,6 +1,8 @@
 (ns examples.download
   "Simulated download demonstrating all progress bar styles."
-  (:require [charm.core :as charm]))
+  (:require
+   [charm.core :as charm]
+   [clojure.string :as str]))
 
 (def bar-style-names
   "All available progress bar styles."
@@ -133,8 +135,7 @@
         all-done? (all-complete? bars)]
     (str (charm/render title-style "Download Demo") "\n"
          (charm/render hint-style "Demonstrating all progress bar styles") "\n\n"
-         (clojure.string/join "\n"
-                              (map #(render-bar bars %) bar-style-names))
+         (str/join "\n" (map #(render-bar bars %) bar-style-names))
          "\n\n"
          (cond
            all-done?

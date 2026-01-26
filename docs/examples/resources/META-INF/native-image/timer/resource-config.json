@@ -1,0 +1,13 @@
+{
+  "resources": {
+    "includes": [
+      {"pattern": "org/jline/.*"},
+      {"pattern": ".*\\.properties$"},
+      {"pattern": ".*\\.so$"},
+      {"pattern": ".*\\.dylib$"},
+      {"pattern": ".*\\.dll$"},
+      {"pattern": "com/ibm/icu/impl/data/icudata/brkitr/.*"},
+      {"pattern": "com/ibm/icu/impl/data/icudata/lang/.*"}
+    ]
+  }
+}
