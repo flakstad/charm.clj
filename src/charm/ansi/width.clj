@@ -7,7 +7,7 @@
    - Combining characters (zero width)
    - Grapheme clusters (emoji sequences)"
   (:require
-   [clojure.string :as str]) 
+   [clojure.string :as str])
   (:import
    [java.text BreakIterator]
    [java.lang Character$UnicodeBlock]))
@@ -32,55 +32,61 @@
 ;; Character Width Calculation
 ;; ---------------------------------------------------------------------------
 
+(defn- all-ascii?
+  "Check if a string contains only ASCII characters (codepoints < 128)."
+  [s]
+  (every? #(< (int %) 128) s))
+
+(def ^:private wide-blocks
+  "Set of Unicode blocks that contain wide (2-cell) characters."
+  #{Character$UnicodeBlock/CJK_UNIFIED_IDEOGRAPHS
+    Character$UnicodeBlock/CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A
+    Character$UnicodeBlock/CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B
+    Character$UnicodeBlock/CJK_COMPATIBILITY
+    Character$UnicodeBlock/CJK_COMPATIBILITY_FORMS
+    Character$UnicodeBlock/CJK_COMPATIBILITY_IDEOGRAPHS
+    Character$UnicodeBlock/CJK_RADICALS_SUPPLEMENT
+    Character$UnicodeBlock/CJK_SYMBOLS_AND_PUNCTUATION
+    Character$UnicodeBlock/ENCLOSED_CJK_LETTERS_AND_MONTHS
+    Character$UnicodeBlock/HIRAGANA
+    Character$UnicodeBlock/KATAKANA
+    Character$UnicodeBlock/KATAKANA_PHONETIC_EXTENSIONS
+    Character$UnicodeBlock/HANGUL_SYLLABLES
+    Character$UnicodeBlock/HANGUL_JAMO
+    Character$UnicodeBlock/HANGUL_COMPATIBILITY_JAMO
+    Character$UnicodeBlock/HALFWIDTH_AND_FULLWIDTH_FORMS
+    Character$UnicodeBlock/EMOTICONS
+    Character$UnicodeBlock/MISCELLANEOUS_SYMBOLS_AND_PICTOGRAPHS
+    Character$UnicodeBlock/TRANSPORT_AND_MAP_SYMBOLS
+    Character$UnicodeBlock/SUPPLEMENTAL_SYMBOLS_AND_PICTOGRAPHS
+    Character$UnicodeBlock/DINGBATS})
+
+(def ^:private zero-width-codepoints
+  "Set of zero-width character code points."
+  #{0x200B   ; ZERO WIDTH SPACE
+    0x200C   ; ZERO WIDTH NON-JOINER
+    0x200D   ; ZERO WIDTH JOINER
+    0xFEFF}) ; ZERO WIDTH NO-BREAK SPACE (BOM)
+
 (defn- zero-width-char?
   "Check if a code point is a zero-width character."
   [^long cp]
-  (or
-   ;; Combining marks
-   (= (Character/getType cp) Character/NON_SPACING_MARK)
-   (= (Character/getType cp) Character/ENCLOSING_MARK)
-   (= (Character/getType cp) Character/COMBINING_SPACING_MARK)
-   ;; Zero-width characters
-   (= cp 0x200B)  ; ZERO WIDTH SPACE
-   (= cp 0x200C)  ; ZERO WIDTH NON-JOINER
-   (= cp 0x200D)  ; ZERO WIDTH JOINER
-   (= cp 0xFEFF)  ; ZERO WIDTH NO-BREAK SPACE (BOM)
-   ;; Control characters
-   (= (Character/getType cp) Character/CONTROL)))
+  (let [char-type (Character/getType cp)]
+    (or
+     ;; Combining marks
+     (= char-type Character/NON_SPACING_MARK)
+     (= char-type Character/ENCLOSING_MARK)
+     (= char-type Character/COMBINING_SPACING_MARK)
+     ;; Zero-width characters
+     (contains? zero-width-codepoints cp)
+     ;; Control characters
+     (= char-type Character/CONTROL))))
 
 (defn- wide-char?
   "Check if a code point is a wide (2-cell) character."
   [^long cp]
-  (let [block (Character$UnicodeBlock/of cp)]
-    (or
-     ;; CJK characters
-     (= block Character$UnicodeBlock/CJK_UNIFIED_IDEOGRAPHS)
-     (= block Character$UnicodeBlock/CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A)
-     (= block Character$UnicodeBlock/CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B)
-     (= block Character$UnicodeBlock/CJK_COMPATIBILITY)
-     (= block Character$UnicodeBlock/CJK_COMPATIBILITY_FORMS)
-     (= block Character$UnicodeBlock/CJK_COMPATIBILITY_IDEOGRAPHS)
-     (= block Character$UnicodeBlock/CJK_RADICALS_SUPPLEMENT)
-     (= block Character$UnicodeBlock/CJK_SYMBOLS_AND_PUNCTUATION)
-     (= block Character$UnicodeBlock/ENCLOSED_CJK_LETTERS_AND_MONTHS)
-     ;; Japanese
-     (= block Character$UnicodeBlock/HIRAGANA)
-     (= block Character$UnicodeBlock/KATAKANA)
-     (= block Character$UnicodeBlock/KATAKANA_PHONETIC_EXTENSIONS)
-     ;; Korean
-     (= block Character$UnicodeBlock/HANGUL_SYLLABLES)
-     (= block Character$UnicodeBlock/HANGUL_JAMO)
-     (= block Character$UnicodeBlock/HANGUL_COMPATIBILITY_JAMO)
-     ;; Full-width forms
-     (= block Character$UnicodeBlock/HALFWIDTH_AND_FULLWIDTH_FORMS)
-     ;; Emojis and pictographs
-     (= block Character$UnicodeBlock/EMOTICONS)
-     (= block Character$UnicodeBlock/MISCELLANEOUS_SYMBOLS_AND_PICTOGRAPHS)
-     (= block Character$UnicodeBlock/TRANSPORT_AND_MAP_SYMBOLS)
-     (= block Character$UnicodeBlock/SUPPLEMENTAL_SYMBOLS_AND_PICTOGRAPHS)
-     (= block Character$UnicodeBlock/DINGBATS)
-     ;; Supplementary characters (often emojis)
-     (Character/isSupplementaryCodePoint cp))))
+  (or (contains? wide-blocks (Character$UnicodeBlock/of cp))
+      (Character/isSupplementaryCodePoint cp)))
 
 (defn char-width
   "Get the display width of a single code point.
@@ -136,9 +142,11 @@
   [s]
   (if (or (nil? s) (empty? s))
     0
-    (let [stripped (strip-ansi s)
-          clusters (graphemes stripped)]
-      (reduce + 0 (map grapheme-width clusters)))))
+    (let [stripped (strip-ansi s)]
+      (if (all-ascii? stripped) ;; fast path for babashka
+        (count stripped)
+        (let [clusters (graphemes stripped)]
+          (transduce (map grapheme-width) + 0 clusters))))))
 
 ;; ---------------------------------------------------------------------------
 ;; Truncation
