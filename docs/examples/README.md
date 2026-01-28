@@ -3,35 +3,35 @@
 ## Run examples
 
 ```
-clj -M:timer
+clj -M -m examples.pomodoro
 ```
-![timer gif](/images/timer.gif)
+![pomodoro gif](/images/pomodoro.gif)
 ```
-clj -M:download
+clj -M -m examples.download
 ```
 ![download gif](/images/download.gif)
 ```
-clj -M:spinner-demo
+clj -M -m examples.spinner-demo
 ```
 ![spinner gif](/images/spinner_demo.gif)
 ```
-clj -M:todos
+clj -M -m examples.todos
 ```
 ![todos gif](/images/todos.gif)
 ```
-clj -M:countdown
+clj -M -m examples.countdown
 ```
 ![countdown gif](/images/countdown.gif)
 ```
-clj -M:file-browser
+clj -M -m examples.file-browser
 ```
 ![file browser gif](/images/file_browser.gif)
 ```
-clj -M:form
+clj -M -m examples.form
 ```
 ![form gif](/images/form.gif)
 ```
-clj -M:counter
+clj -M -m examples.counter
 ```
 ![counter gif](/images/counter.gif)
 
