@@ -32,31 +32,30 @@
     (is (= {:type :rgb :r 255 :g 255 :b 255} (c/hex "ffffff")))
     (is (= {:type :rgb :r 0 :g 0 :b 0} (c/hex "000000")))))
 
-(deftest color->fg-seq-test
-  (testing "generates ANSI foreground sequences"
-    (is (= "\u001b[31m" (c/color->fg-seq (c/ansi :red))))
-    (is (= "\u001b[34m" (c/color->fg-seq (c/ansi :blue)))))
+(deftest styled-str-test
+  (testing "applies foreground color"
+    (is (= "\u001b[31mx\u001b[0m" (c/styled-str "x" :fg (c/ansi :red))))
+    (is (= "\u001b[34mx\u001b[0m" (c/styled-str "x" :fg (c/ansi :blue)))))
 
-  (testing "generates ANSI 256 foreground sequences"
-    (is (= "\u001b[38;5;196m" (c/color->fg-seq (c/ansi256 196)))))
+  (testing "applies ANSI 256 foreground"
+    (is (= "\u001b[38;5;196mx\u001b[0m" (c/styled-str "x" :fg (c/ansi256 196)))))
 
-  (testing "generates RGB foreground sequences"
-    (is (= "\u001b[38;2;255;0;0m" (c/color->fg-seq (c/rgb 255 0 0)))))
+  (testing "applies RGB foreground"
+    (is (= "\u001b[38;5;196mx\u001b[0m" (c/styled-str "x" :fg (c/rgb 255 0 0)))))
 
-  (testing "returns nil for no-color"
-    (is (nil? (c/color->fg-seq (c/no-color))))
-    (is (nil? (c/color->fg-seq nil)))))
+  (testing "applies background color"
+    (is (= "\u001b[41mx\u001b[0m" (c/styled-str "x" :bg (c/ansi :red))))
+    (is (= "\u001b[44mx\u001b[0m" (c/styled-str "x" :bg (c/ansi :blue)))))
 
-(deftest color->bg-seq-test
-  (testing "generates ANSI background sequences"
-    (is (= "\u001b[41m" (c/color->bg-seq (c/ansi :red))))
-    (is (= "\u001b[44m" (c/color->bg-seq (c/ansi :blue)))))
+  (testing "applies ANSI 256 background"
+    (is (= "\u001b[48;5;196mx\u001b[0m" (c/styled-str "x" :bg (c/ansi256 196)))))
 
-  (testing "generates ANSI 256 background sequences"
-    (is (= "\u001b[48;5;196m" (c/color->bg-seq (c/ansi256 196)))))
+  (testing "applies both foreground and background"
+    (is (= "\u001b[31;44mx\u001b[0m" (c/styled-str "x" :fg (c/ansi :red) :bg (c/ansi :blue)))))
 
-  (testing "generates RGB background sequences"
-    (is (= "\u001b[48;2;255;0;0m" (c/color->bg-seq (c/rgb 255 0 0))))))
+  (testing "returns unchanged for no colors"
+    (is (= "x" (c/styled-str "x")))
+    (is (= "x" (c/styled-str "x" :fg nil :bg nil)))))
 
 (deftest rgb->ansi256-test
   (testing "converts RGB to ANSI 256"

@@ -4,9 +4,11 @@
    Supports:
    - ANSI 16 basic colors (0-15)
    - ANSI 256 extended palette (0-255)
-   - True color RGB (24-bit)" 
+   - True color RGB (24-bit)"
   (:require
-   [clojure.string :as str]))
+   [clojure.string :as str])
+  (:import
+   [org.jline.utils AttributedString AttributedStyle]))
 
 ;; ---------------------------------------------------------------------------
 ;; Color Profile Detection
@@ -109,46 +111,41 @@
   {:type :none})
 
 ;; ---------------------------------------------------------------------------
-;; Color Application (ANSI Escape Sequences)
+;; Color Application (via JLine AttributedStyle)
 ;; ---------------------------------------------------------------------------
 
-(def ^:private CSI "\u001b[")
-
-(defn- ansi-fg-code
-  "Get foreground SGR code for an ANSI color."
-  [code]
-  (if (< code 8)
-    (+ 30 code)
-    (+ 82 code)))  ; 90-97 for bright colors
-
-(defn- ansi-bg-code
-  "Get background SGR code for an ANSI color."
-  [code]
-  (if (< code 8)
-    (+ 40 code)
-    (+ 92 code)))  ; 100-107 for bright colors
-
-(defn color->fg-seq
-  "Convert a color to foreground ANSI escape sequence."
-  [color]
-  (when color
+(defn apply-color-fg
+  "Apply foreground color to an AttributedStyle."
+  ^AttributedStyle [^AttributedStyle style color]
+  (if (or (nil? color) (= :none (:type color)))
+    style
     (case (:type color)
-      :none nil
-      :ansi (str CSI (ansi-fg-code (:code color)) "m")
-      :ansi256 (str CSI "38;5;" (:code color) "m")
-      :rgb (str CSI "38;2;" (:r color) ";" (:g color) ";" (:b color) "m")
-      nil)))
+      :ansi    (.foreground style (int (:code color)))
+      :ansi256 (.foreground style (int (:code color)))
+      :rgb     (.foreground style (int (:r color)) (int (:g color)) (int (:b color)))
+      style)))
 
-(defn color->bg-seq
-  "Convert a color to background ANSI escape sequence."
-  [color]
-  (when color
+(defn apply-color-bg
+  "Apply background color to an AttributedStyle."
+  ^AttributedStyle [^AttributedStyle style color]
+  (if (or (nil? color) (= :none (:type color)))
+    style
     (case (:type color)
-      :none nil
-      :ansi (str CSI (ansi-bg-code (:code color)) "m")
-      :ansi256 (str CSI "48;5;" (:code color) "m")
-      :rgb (str CSI "48;2;" (:r color) ";" (:g color) ";" (:b color) "m")
-      nil)))
+      :ansi    (.background style (int (:code color)))
+      :ansi256 (.background style (int (:code color)))
+      :rgb     (.background style (int (:r color)) (int (:g color)) (int (:b color)))
+      style)))
+
+(defn styled-str
+  "Create a styled string with foreground and/or background color.
+   Returns the string with ANSI escape sequences applied."
+  [text & {:keys [fg bg]}]
+  (if (and (nil? fg) (nil? bg))
+    text
+    (let [style (-> AttributedStyle/DEFAULT
+                    (apply-color-fg fg)
+                    (apply-color-bg bg))]
+      (.toAnsi (AttributedString. ^String text style)))))
 
 ;; ---------------------------------------------------------------------------
 ;; Color Conversion

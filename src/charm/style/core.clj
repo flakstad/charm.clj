@@ -10,7 +10,8 @@
             [charm.style.border :as b]
             [charm.style.layout :as l]
             [charm.ansi.width :as w]
-            [clojure.string :as str]))
+            [clojure.string :as str])
+  (:import [org.jline.utils AttributedString AttributedStyle]))
 
 ;; ---------------------------------------------------------------------------
 ;; Style Definition
@@ -135,38 +136,31 @@
   (assoc s :valign valign))
 
 ;; ---------------------------------------------------------------------------
-;; ANSI Sequence Generation
+;; ANSI Sequence Generation (via JLine AttributedStyle)
 ;; ---------------------------------------------------------------------------
 
-(def ^:private CSI "\u001b[")
-(def ^:private RESET (str CSI "0m"))
-
-(defn- build-sgr-sequence
-  "Build SGR (Select Graphic Rendition) sequence from style."
-  [{:keys [fg bg bold italic underline blink faint reverse]}]
-  (let [codes (cond-> []
-                bold (conj 1)
-                faint (conj 2)
-                italic (conj 3)
-                underline (conj 4)
-                blink (conj 5)
-                reverse (conj 7))]
-    (when (seq codes)
-      (str CSI (str/join ";" codes) "m"))))
+(defn- style-map->attributed-style
+  "Convert style map to JLine AttributedStyle."
+  ^AttributedStyle [{:keys [fg bg bold italic underline blink faint reverse]}]
+  (cond-> AttributedStyle/DEFAULT
+    bold      (.bold)
+    faint     (.faint)
+    italic    (.italic)
+    underline (.underline)
+    blink     (.blink)
+    reverse   (.inverse)
+    fg        (c/apply-color-fg fg)
+    bg        (c/apply-color-bg bg)))
 
 (defn- apply-text-style
   "Apply text styling (colors and attributes) to a string."
-  [text {:keys [fg bg] :as style}]
-  (let [sgr (build-sgr-sequence style)
-        fg-seq (c/color->fg-seq fg)
-        bg-seq (c/color->bg-seq bg)]
-    (if (or sgr fg-seq bg-seq)
-      (let [lines (str/split-lines text)]
-        (str/join
-         "\n"
-         (for [line lines]
-           (str (or fg-seq "") (or bg-seq "") (or sgr "") line RESET))))
-      text)))
+  [text style]
+  (let [attr-style (style-map->attributed-style style)]
+    (if (= attr-style AttributedStyle/DEFAULT)
+      text
+      (->> (str/split-lines text)
+           (map #(.toAnsi (AttributedString. ^String % attr-style)))
+           (str/join "\n")))))
 
 ;; ---------------------------------------------------------------------------
 ;; Rendering

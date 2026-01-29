@@ -106,10 +106,7 @@
 (defn- style-text
   "Apply foreground and background color to text."
   [text fg bg]
-  (let [fg-seq (color/color->fg-seq fg)
-        bg-seq (color/color->bg-seq bg)
-        reset "\u001b[0m"]
-    (str (or fg-seq "") (or bg-seq "") text reset)))
+  (color/styled-str text :fg fg :bg bg))
 
 (defn apply-border
   "Apply a border around text content.

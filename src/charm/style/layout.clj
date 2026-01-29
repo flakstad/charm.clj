@@ -54,6 +54,14 @@
   [s]
   (count (split-lines s)))
 
+(defn- styled-spaces
+  "Create a string of N spaces with optional background color."
+  [n bg]
+  (let [spaces (apply str (repeat n " "))]
+    (if bg
+      (color/styled-str spaces :bg bg)
+      spaces)))
+
 ;; ---------------------------------------------------------------------------
 ;; Padding
 ;; ---------------------------------------------------------------------------
@@ -71,20 +79,14 @@
   ([text top-pad right-pad bottom-pad left-pad & {:keys [bg]}]
    (let [lines (split-lines text)
          content-width (widest-line text)
-         bg-seq (color/color->bg-seq bg)
-         reset (when bg-seq "\u001b[0m")
-         ;; Build padding strings
-         left-str (apply str (repeat left-pad " "))
-         right-str (apply str (repeat right-pad " "))
          full-width (+ left-pad content-width right-pad)
-         empty-line (apply str (repeat full-width " "))
          ;; Wrap line with padding
          wrap-line (fn [line]
                      (let [line-width (w/string-width line)
-                           line-right-pad (apply str (repeat (+ right-pad (- content-width line-width)) " "))]
-                       (str (or bg-seq "") left-str line line-right-pad (or reset ""))))
+                           right-pad-count (+ right-pad (- content-width line-width))]
+                       (str (styled-spaces left-pad bg) line (styled-spaces right-pad-count bg))))
          ;; Create top/bottom padding lines
-         pad-line (str (or bg-seq "") empty-line (or reset ""))]
+         pad-line (styled-spaces full-width bg)]
      (str/join
       "\n"
       (concat
@@ -109,22 +111,16 @@
   ([text top-margin right-margin bottom-margin left-margin & {:keys [bg]}]
    (let [lines (split-lines text)
          content-width (widest-line text)
-         bg-seq (color/color->bg-seq bg)
-         reset (when bg-seq "\u001b[0m")
-         ;; Build margin strings
-         left-str (apply str (repeat left-margin " "))
-         right-str (apply str (repeat right-margin " "))
          full-width (+ left-margin content-width right-margin)
-         empty-line (apply str (repeat full-width " "))
          ;; Wrap line with margin
          wrap-line (fn [line]
                      (let [line-width (w/string-width line)
-                           line-right-margin (apply str (repeat (+ right-margin (- content-width line-width)) " "))]
-                       (str (or bg-seq "") left-str (or reset "")
+                           right-margin-count (+ right-margin (- content-width line-width))]
+                       (str (styled-spaces left-margin bg)
                             line
-                            (or bg-seq "") line-right-margin (or reset ""))))
+                            (styled-spaces right-margin-count bg))))
          ;; Create top/bottom margin lines
-         margin-line (str (or bg-seq "") empty-line (or reset ""))]
+         margin-line (styled-spaces full-width bg)]
      (str/join
       "\n"
       (concat
@@ -144,25 +140,19 @@
    Options:
      :bg - Background color for fill"
   [text width position & {:keys [bg]}]
-  (let [bg-seq (color/color->bg-seq bg)
-        reset (when bg-seq "\u001b[0m")]
-    (str/join
-     "\n"
-     (for [line (split-lines text)]
-       (let [line-width (w/string-width line)
-             total-pad (max 0 (- width line-width))
-             [left-pad right-pad] (case position
-                                    :left [0 total-pad]
-                                    :right [total-pad 0]
-                                    :center [(quot total-pad 2)
-                                             (- total-pad (quot total-pad 2))])]
-         (str (or bg-seq "")
-              (apply str (repeat left-pad " "))
-              (or reset "")
-              line
-              (or bg-seq "")
-              (apply str (repeat right-pad " "))
-              (or reset "")))))))
+  (str/join
+   "\n"
+   (for [line (split-lines text)]
+     (let [line-width (w/string-width line)
+           total-pad (max 0 (- width line-width))
+           [left-pad right-pad] (case position
+                                  :left [0 total-pad]
+                                  :right [total-pad 0]
+                                  :center [(quot total-pad 2)
+                                           (- total-pad (quot total-pad 2))])]
+       (str (styled-spaces left-pad bg)
+            line
+            (styled-spaces right-pad bg))))))
 
 ;; ---------------------------------------------------------------------------
 ;; Vertical Alignment
