@@ -6,21 +6,23 @@
 
    Run: cd docs/examples && clj -M -m examples.cheatsheet"
   (:require
-   [charm.core :as charm]
    [charm.ansi.width :as ansi-width]
+   [charm.components.help :as help]
+   [charm.core :as charm]
    [charm.style.border :as border]
+   [charm.style.core :as style]
    [charm.style.overlay :as overlay]
-   [examples.cheatsheet.data :as data]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [examples.cheatsheet.data :as data]))
 
 ;; ---------------------------------------------------------------------------
 ;; Colors — Clojure brand palette
 ;; ---------------------------------------------------------------------------
 
-(def clj-green (charm/hex "#63B132"))
-(def clj-blue (charm/hex "#5881D8"))
-(def clj-light-blue (charm/hex "#8FB5FE"))
-(def clj-light-green (charm/hex "#91DC47"))
+(def clj-green (style/hex "#63B132"))
+(def clj-blue (style/hex "#5881D8"))
+(def clj-light-blue (style/hex "#8FB5FE"))
+(def clj-light-green (style/hex "#91DC47"))
 
 ;; ---------------------------------------------------------------------------
 ;; Styles
@@ -102,14 +104,17 @@
 ;; ---------------------------------------------------------------------------
 
 (defn- make-help [mode filter-focused]
-  (if (= mode :overlay)
-    (charm/help-from-pairs
-     "↑↓" "scroll" "ctrl+d/u" "page" "n/p" "see-also" "esc" "close")
-    (if filter-focused
-      (charm/help-from-pairs
-       "↑↓" "navigate" "enter" "details" "esc" "clear" "ctrl+c" "quit")
-      (charm/help-from-pairs
-       "↑↓" "navigate" "enter" "details" "/" "filter" "q" "quit"))))
+  (let [help-content
+        (if (= mode :overlay)
+          (help/from-pairs
+           "↑↓" "scroll" "ctrl+d/u" "page" "n/p" "see-also" "esc" "close")
+          (if filter-focused
+            (help/from-pairs
+             "↑↓" "navigate" "enter" "details" "esc" "clear" "ctrl+c" "quit")
+            (help/from-pairs
+             "↑↓" "navigate" "enter" "details" "/" "filter" "q" "quit")))]
+    (help/help help-content
+               :key-style (style/style :bg clj-light-green))))
 
 (defn init []
   (let [state {:mode :browse
@@ -123,7 +128,7 @@
                          :viewport (charm/viewport "" :height 20)
                          :see-alsos []
                          :see-also-idx 0}
-               :help (charm/help (make-help :browse false) :width 70)
+               :help (make-help :browse false)
                :width 80
                :height 24}]
     [state (charm/cmd data/load-docs!)]))
@@ -223,12 +228,12 @@
                                                    :width content-width)
                          :see-alsos see-alsos
                          :see-also-idx 0})
-        (assoc :help (charm/help (make-help :overlay false) :width 70)))))
+        (assoc :help (make-help :overlay false) :width 70))))
 
 (defn- close-overlay [state]
   (-> state
       (assoc :mode :browse)
-      (assoc :help (charm/help (make-help :browse (:filter-focused state)) :width 70))))
+      (assoc :help (make-help :browse (:filter-focused state)) :width 70)))
 
 (defn- next-see-also [state]
   (let [see-alsos (get-in state [:overlay :see-alsos])
@@ -272,13 +277,13 @@
   (-> state
       (assoc :filter-focused true)
       (update :filter-input charm/text-input-focus)
-      (assoc :help (charm/help (make-help :browse true) :width 70))))
+      (assoc :help (make-help :browse true) :width 70)))
 
 (defn- blur-filter [state]
   (-> state
       (assoc :filter-focused false)
       (update :filter-input charm/text-input-blur)
-      (assoc :help (charm/help (make-help :browse false) :width 70))))
+      (assoc :help (make-help :browse false) :width 70)))
 
 (defn- clear-and-blur-filter [state]
   (-> state
@@ -452,9 +457,9 @@
     (str/join "\n" result-lines)))
 
 (defn- render-help-bar [state]
-  (let [help-content (charm/help-view (:help state))]
-    (charm/render (charm/style :bg clj-light-green
-                               :border border/outer-half-block
+  (let [help-content (help/help-view (:help state))]
+    (style/render (style/style :bg clj-light-green
+                               :border border/normal
                                :border-fg clj-light-green
                                :padding [0 1])
                   help-content)))
