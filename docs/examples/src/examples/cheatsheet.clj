@@ -462,7 +462,9 @@
         field-content (str "🔍 " input-view)]
     (charm/render (charm/style :bg clj-light-blue
                                :width filter-field-width
-                               :padding [1 1])
+                               :border border/inner-half-block
+                               :border-fg clj-light-blue
+                               :padding [0 1])
                   field-content)))
 
 (defn- render-title-bar [state]
