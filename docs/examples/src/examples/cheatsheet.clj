@@ -114,7 +114,10 @@
             (help/from-pairs
              "↑↓" "navigate" "enter" "details" "/" "filter" "q" "quit")))]
     (help/help help-content
-               :key-style (style/style :bg clj-light-green))))
+               :bg clj-light-green)))
+
+(comment
+  (make-help :browse false))
 
 (defn init []
   (let [state {:mode :browse
@@ -457,9 +460,9 @@
     (str/join "\n" result-lines)))
 
 (defn- render-help-bar [state]
-  (let [help-content (help/help-view (:help state))]
+  (let [help-content (help/short-help-view (:help state))]
     (style/render (style/style :bg clj-light-green
-                               :border border/normal
+                               :border border/inner-half-block
                                :border-fg clj-light-green
                                :padding [0 1])
                   help-content)))
