@@ -235,7 +235,7 @@
         (render/render! renderer (view @state))
 
         ;; Drain any initial window-size message to avoid double render
-        (a/poll! msg-chan)
+        {:drain (a/poll! msg-chan)}
 
         ;; Main event loop
         (loop []

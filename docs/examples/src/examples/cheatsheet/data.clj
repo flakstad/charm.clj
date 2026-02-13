@@ -381,16 +381,15 @@
                        (assoc section :subsections subsections)))))
            vec))))
 
-(defn flat-fns
-  "Flatten sections into an ordered list of selectable functions.
-   Returns [{:sym ... :section ... :subsection ... :group ...} ...]"
+(defn sections->grid
+  "Convert sections into a grid: a vector of group rows.
+   Each row = {:section ... :subsection ... :label ... :fns [...]}.
+   Row index = group index across all sections/subsections."
   [sects]
-  (vec
-   (for [section sects
-         subsection (:subsections section)
-         group (:groups subsection)
-         f (:fns group)]
-     {:sym f
-      :section (:name section)
-      :subsection (:name subsection)
-      :group (:label group)})))
+  (vec (for [section sects
+             subsection (:subsections section)
+             group (:groups subsection)]
+         {:section (:name section)
+          :subsection (:name subsection)
+          :label (:label group)
+          :fns (:fns group)})))

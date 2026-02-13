@@ -110,9 +110,9 @@
            "↑↓" "scroll" "ctrl+d/u" "page" "n/p" "see-also" "esc" "close")
           (if filter-focused
             (help/from-pairs
-             "↑↓" "navigate" "enter" "details" "esc" "clear" "ctrl+c" "quit")
+             "←→" "move" "↑↓" "navigate" "enter" "details" "esc" "clear" "ctrl+c" "quit")
             (help/from-pairs
-             "↑↓" "navigate" "enter" "details" "/" "filter" "q" "quit")))]
+             "h/l" "move" "j/k" "navigate" "enter" "details" "/" "filter" "q" "quit")))]
     (help/help help-content
                :bg clj-light-green)))
 
@@ -125,7 +125,7 @@
                                                :placeholder "filter..."
                                                :focused false)
                :filter-focused false
-               :cursor 0
+               :cursor {:row 0 :col 0}
                :scroll-offset 0
                :overlay {:fn-sym nil
                          :viewport (charm/viewport "" :height 20)
@@ -146,22 +146,28 @@
 (defn- filtered-sections [state]
   (data/filter-sections data/sections (current-query state)))
 
-(defn- current-flat-fns [state]
-  (data/flat-fns (filtered-sections state)))
+(defn- current-grid [state]
+  (data/sections->grid (filtered-sections state)))
 
 ;; ---------------------------------------------------------------------------
 ;; Cursor Helpers
 ;; ---------------------------------------------------------------------------
 
 (defn- clamp-cursor [state]
-  (let [fns (current-flat-fns state)
-        max-idx (max 0 (dec (count fns)))]
-    (update state :cursor #(max 0 (min % max-idx)))))
+  (let [grid (current-grid state)
+        max-row (max 0 (dec (count grid)))
+        row (-> state :cursor :row (max 0) (min max-row))
+        max-col (if (seq grid)
+                  (max 0 (dec (count (:fns (nth grid row)))))
+                  0)
+        col (-> state :cursor :col (max 0) (min max-col))]
+    (assoc state :cursor {:row row :col col})))
 
 (defn- cursor-sym [state]
-  (let [fns (current-flat-fns state)]
-    (when (and (seq fns) (< (:cursor state) (count fns)))
-      (:sym (nth fns (:cursor state))))))
+  (let [grid (current-grid state)
+        {:keys [row col]} (:cursor state)]
+    (when (and (seq grid) (< row (count grid)))
+      (get-in grid [row :fns col]))))
 
 ;; ---------------------------------------------------------------------------
 ;; Overlay Mode
@@ -292,16 +298,31 @@
   (-> state
       (update :filter-input charm/text-input-reset)
       (blur-filter)
-      (assoc :cursor 0)
+      (assoc :cursor {:row 0 :col 0})
       (assoc :scroll-offset 0)))
 
-(defn- move-cursor [state delta]
-  (let [fns (current-flat-fns state)
-        max-idx (max 0 (dec (count fns)))
-        new-cursor (max 0 (min max-idx (+ (:cursor state) delta)))]
-    (assoc state :cursor new-cursor)))
+(defn- move-col [state delta]
+  (let [grid (current-grid state)
+        {:keys [row col]} (:cursor state)
+        max-col (if (seq grid)
+                  (max 0 (dec (count (:fns (nth grid row)))))
+                  0)
+        new-col (max 0 (min max-col (+ col delta)))]
+    (assoc-in state [:cursor :col] new-col)))
+
+(defn- move-row [state delta]
+  (let [grid (current-grid state)
+        {:keys [row col]} (:cursor state)
+        max-row (max 0 (dec (count grid)))
+        new-row (max 0 (min max-row (+ row delta)))
+        max-col (if (seq grid)
+                  (max 0 (dec (count (:fns (nth grid new-row)))))
+                  0)
+        clamped-col (min col max-col)]
+    (assoc state :cursor {:row new-row :col clamped-col})))
 
 (defn update-fn [state msg]
+  (tap> {:update-state state :update-msg msg})
   (cond
     ;; Window resize
     (charm/window-size? msg)
@@ -319,12 +340,19 @@
       ;; ----- Browse mode -----
       :browse
       (cond
-        ;; Navigation keys work in both focused and blurred
+        ;; Vertical navigation: up/down moves between groups
         (or (charm/key-match? msg "down") (and (not (:filter-focused state)) (charm/key-match? msg "j")))
-        [(move-cursor state 1) nil]
+        [(move-row state 1) nil]
 
         (or (charm/key-match? msg "up") (and (not (:filter-focused state)) (charm/key-match? msg "k")))
-        [(move-cursor state -1) nil]
+        [(move-row state -1) nil]
+
+        ;; Horizontal navigation: left/right moves between fns within a group
+        (or (charm/key-match? msg "left") (and (not (:filter-focused state)) (charm/key-match? msg "h")))
+        [(move-col state -1) nil]
+
+        (or (charm/key-match? msg "right") (and (not (:filter-focused state)) (charm/key-match? msg "l")))
+        [(move-col state 1) nil]
 
         ;; Enter opens overlay
         (charm/key-match? msg "enter")
@@ -351,7 +379,7 @@
         (let [[new-input cmd] (charm/text-input-update (:filter-input state) msg)
               state (assoc state :filter-input new-input)
               ;; Reset cursor when filter changes
-              state (-> state (assoc :cursor 0) (assoc :scroll-offset 0))
+              state (-> state (assoc :cursor {:row 0 :col 0}) (assoc :scroll-offset 0))
               state (clamp-cursor state)]
           [state cmd])
 
@@ -388,14 +416,13 @@
    where cursor-line is the line index of the cursor function."
   [state]
   (let [sections (filtered-sections state)
-        cursor-idx (:cursor state)
+        grid (current-grid state)
+        {:keys [row col]} (:cursor state)
         ;; Account for thick border (2 cols) + some inner margin
         width (max 40 (- (:width state) 6))
         lines (atom [])
         cursor-line (atom 0)
-        ;; Track remaining cursor position through the flat list
-        ;; to handle duplicate symbols correctly
-        cursor-remaining (atom cursor-idx)]
+        group-idx (atom 0)]
     (doseq [[si section] (map-indexed vector sections)]
       (when (pos? si)
         (swap! lines conj ""))
@@ -407,21 +434,23 @@
         (swap! lines conj (str "  " (charm/render subsection-title-style (:name subsection))))
         (let [label-width (reduce max 1 (map #(count (:label %)) (:groups subsection)))]
           (doseq [group (:groups subsection)]
-            (let [fns-str (str/join " "
-                                    (map (fn [sym]
-                                           (let [remaining @cursor-remaining
-                                                 selected? (zero? remaining)]
-                                             (swap! cursor-remaining dec)
-                                             (when selected?
-                                               (reset! cursor-line (count @lines)))
-                                             (if selected?
-                                               (charm/render fn-selected-style
-                                                             (str " " (name sym) " "))
-                                               (name sym))))
-                                         (:fns group)))
+            (let [gi @group-idx
+                  selected-row? (= gi row)
+                  fns-str (str/join " "
+                                    (map-indexed
+                                     (fn [fi sym]
+                                       (let [selected? (and selected-row? (= fi col))]
+                                         (when selected?
+                                           (reset! cursor-line (count @lines)))
+                                         (if selected?
+                                           (charm/render fn-selected-style
+                                                         (str " " (name sym) " "))
+                                           (name sym))))
+                                     (:fns group)))
                   label-str (charm/render group-label-style
                                           (ansi-width/pad-right (:label group) label-width))]
-              (swap! lines conj (str "    " label-str "  " fns-str)))))))
+              (swap! lines conj (str "    " label-str "  " fns-str))
+              (swap! group-idx inc))))))
     (if (empty? @lines)
       {:text (charm/render dim-style "  No matching functions") :cursor-line 0}
       {:text (str/join "\n" @lines) :cursor-line @cursor-line})))
@@ -501,6 +530,7 @@
 ;; ---------------------------------------------------------------------------
 
 (defn view [state]
+  (tap> {:state state})
   (let [width (:width state)
         height (:height state)
         ;; Border takes 2 rows + 2 cols, blank line on top takes 1 row
