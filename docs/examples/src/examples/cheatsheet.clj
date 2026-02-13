@@ -42,7 +42,7 @@
   (charm/style :fg 240))
 
 (def fn-selected-style
-  (charm/style :fg :black :bg clj-green :bold true))
+  (charm/style :fg :black :bg clj-light-green :bold true))
 
 (def overlay-title-style
   (charm/style :fg clj-blue :bold true))
@@ -116,9 +116,6 @@
              "h/l" "move" "j/k" "navigate" "enter" "details" "/" "filter" "q" "quit")))]
     (help/help help-content
                :bg clj-light-green)))
-
-(comment
-  (make-help :browse false))
 
 (defn init []
   (let [state {:mode :browse
@@ -245,19 +242,19 @@
       (assoc :mode :browse)
       (assoc :help (make-help :browse (:filter-focused state)))))
 
-(defn- next-see-also [state]
-  (let [see-alsos (get-in state [:overlay :see-alsos])
-        idx (get-in state [:overlay :see-also-idx] 0)]
-    (if (and (seq see-alsos) (< (inc idx) (count see-alsos)))
-      (open-overlay state (nth see-alsos (inc idx)))
-      state)))
-
-(defn- prev-see-also [state]
-  (let [see-alsos (get-in state [:overlay :see-alsos])
-        idx (get-in state [:overlay :see-also-idx] 0)]
-    (if (and (seq see-alsos) (pos? idx))
-      (open-overlay state (nth see-alsos (dec idx)))
-      state)))
+; (defn- next-see-also [state]
+;   (let [see-alsos (get-in state [:overlay :see-alsos])
+;         idx (get-in state [:overlay :see-also-idx] 0)]
+;     (if (and (seq see-alsos) (< (inc idx) (count see-alsos)))
+;       (open-overlay state (nth see-alsos (inc idx)))
+;       state)))
+;
+; (defn- prev-see-also [state]
+;   (let [see-alsos (get-in state [:overlay :see-alsos])
+;         idx (get-in state [:overlay :see-also-idx] 0)]
+;     (if (and (seq see-alsos) (pos? idx))
+;       (open-overlay state (nth see-alsos (dec idx)))
+;       state)))
 
 ;; ---------------------------------------------------------------------------
 ;; Scroll Management
@@ -273,15 +270,16 @@
    cursor-line is the line index within the content area where the
    cursor function appears. content-height is the visible area height."
   [state cursor-line content-height]
-  (let [offset (:scroll-offset state)]
+  (let [offset (:scroll-offset state)
+        margin (min 3 (quot content-height 4))]
     (cond
-      ;; Cursor above visible area
-      (< cursor-line offset)
-      (assoc state :scroll-offset cursor-line)
-      ;; Cursor below visible area
-      (>= cursor-line (+ offset content-height))
-      (assoc state :scroll-offset (- cursor-line content-height -1))
-      ;; Already visible
+      ;; Cursor too close to top — keep margin lines of context above
+      (< cursor-line (+ offset margin))
+      (assoc state :scroll-offset (max 0 (- cursor-line margin)))
+      ;; Cursor too close to bottom — keep margin lines of context below
+      (>= cursor-line (- (+ offset content-height) margin))
+      (assoc state :scroll-offset (+ cursor-line margin (- content-height) 1))
+      ;; Already visible with enough context
       :else state)))
 
 (declare render-content)
@@ -413,11 +411,11 @@
         (let [[vp _] (viewport/viewport-update (get-in state [:overlay :viewport]) msg)]
           [(assoc-in state [:overlay :viewport] vp) nil])
 
-        (charm/key-match? msg "n")
-        [(next-see-also state) nil]
-
-        (charm/key-match? msg "p")
-        [(prev-see-also state) nil]
+        ; (charm/key-match? msg "n")
+        ; [(next-see-also state) nil]
+        ;
+        ; (charm/key-match? msg "p")
+        ; [(prev-see-also state) nil]
 
         :else
         [state nil]))))
@@ -440,7 +438,7 @@
       (if-let [[fi sym] (first remaining)]
         (let [sel? (and selected? (= fi col))
               text (if sel?
-                     (charm/render fn-selected-style (str " " (name sym) " "))
+                     (charm/render fn-selected-style (name sym))
                      (name sym))
               tw (ansi-width/string-width text)
               start? (= w prefix-w)
