@@ -36,7 +36,7 @@ jobs:
         run: cljfmt check
 
       - name: Lint
-        run: clj-kondo --lint src test
+        run: clj-kondo --fail-level error --lint src test
 
       - name: Test
         run: clj -M:test
