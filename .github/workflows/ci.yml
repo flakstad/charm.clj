@@ -39,10 +39,10 @@ jobs:
         run: clj-kondo --fail-level error --lint src test
 
       - name: Test
-        run: clj -M:test
+        run: clojure -M:test
 
       - name: Build JAR
-        run: clj -T:build jar
+        run: clojure -T:build jar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -82,7 +82,7 @@ jobs:
           name: charm-jar
 
       - name: Deploy to Clojars
-        run: clj -T:build deploy
+        run: clojure -T:build deploy
         env:
           CHARM_VERSION: ${{ github.ref_name }}
           CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
