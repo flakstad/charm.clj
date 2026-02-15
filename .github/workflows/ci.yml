@@ -48,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: charm-jar
-          path: target/charm*.jar
+          path: target/
 
   release:
     needs: ci
@@ -80,6 +80,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: charm-jar
+          path: target/
 
       - name: Deploy to Clojars
         run: clojure -T:build deploy
