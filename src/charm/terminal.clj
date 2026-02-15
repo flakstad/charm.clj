@@ -1,8 +1,7 @@
 (ns charm.terminal
   "JLine terminal wrapper for charm.clj"
   (:import [org.jline.terminal Terminal TerminalBuilder Attributes]
-           [org.jline.utils InfoCmp$Capability]
-           [java.nio.charset Charset]))
+           [org.jline.utils InfoCmp$Capability]))
 
 (defn create-terminal
   "Create a JLine terminal with system I/O and FFM as native interface."
