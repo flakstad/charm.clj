@@ -50,7 +50,7 @@
               :artifact (b/resolve-path jar-file)
               :pom-file (b/pom-path {:lib lib :class-dir class-dir})}))
 
-(defn release-tag [_]
+(defn tag-release [_]
   (let [tag (tag-str)]
     (b/git-process {:git-args ["tag" "-a" tag]})
     (b/git-process {:git-args ["push" "--tags"]})))
