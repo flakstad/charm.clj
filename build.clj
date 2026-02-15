@@ -52,5 +52,5 @@
 
 (defn tag-release [_]
   (let [tag (tag-str)]
-    (b/git-process {:git-args ["tag" "-a" tag]})
+    (b/git-process {:git-args ["tag" tag]})
     (b/git-process {:git-args ["push" "--tags"]})))
