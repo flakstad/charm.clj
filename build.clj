@@ -53,7 +53,7 @@
 (defn tag-release [_]
   (let [tag (tag-str)
         git-name (or (System/getenv "GIT_COMMITTER_NAME") "Timo Kramer")
-        git-email (System/getenv "GIT_COMMITTER_EMAIL")]
+        git-email (or (System/getenv "GIT_COMMITTER_EMAIL") "foo.bar@baz.meh")]
     (b/git-process {:git-args ["config" "set" "--local" "user.name" git-name]})
     (b/git-process {:git-args ["config" "set" "--local" "user.email" git-email]})
     (b/git-process {:git-args ["config" "list"]})
