@@ -1,4 +1,5 @@
 Output pomodoro.ascii
+Output pomodoro.gif
 
 Set Shell zsh
 

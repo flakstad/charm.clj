@@ -28,18 +28,6 @@ jobs:
           clj-kondo: latest
           cljfmt: latest
 
-      - name: Run vhs pomodoro
-        uses: charmbracelet/vhs-action@v2.1.0
-        with:
-          path: docs/examples/vhs/pomodoro.tape
-
-      - name: Run vhs download
-        uses: charmbracelet/vhs-action@v2.1.0
-        with:
-          path: docs/examples/vhs/download.tape
-
-
-
       - uses: actions/cache@v4
         with:
           path: |
@@ -57,8 +45,13 @@ jobs:
       - name: Test
         run: clojure -M:test
 
-      - name: Test vhs
+      - name: Run vhs
         run: |
+          sudo apt update
+          sudo apt install -y ffmpeg ttyd
+          go install github.com/charmbracelet/vhs@v2.1.0
+          vhs docs/examples/vhs/download.tape
+          vhs docs/examples/vhs/pomodoro.tape
           ls -lahrtR
           diff pomodoro.ascii docs/examples/test/pomodoro.ascii
           diff download.ascii docs/examples/test/download.ascii
