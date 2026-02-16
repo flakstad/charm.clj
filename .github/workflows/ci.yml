@@ -10,7 +10,7 @@ on: push
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,13 +45,23 @@ jobs:
       - name: Test
         run: clojure -M:test
 
-      - name: Run vhs
+      - name: Run vhs download
+        uses: charmbracelet/vhs-action@v2.1.0
+        with:
+          path: 'docs/examples/vhs/download.tape'
+
+      - name: Run vhs pomodoro
+        uses: charmbracelet/vhs-action@v2.1.0
+        with:
+          path: 'docs/examples/vhs/pomodoro.tape'
+
+      - name: Run vhs test
         run: |
-          sudo apt update
-          sudo apt install -y ffmpeg ttyd
-          go install github.com/charmbracelet/vhs@v0.10.0
-          ${HOME}/go/bin/vhs docs/examples/vhs/download.tape
-          ${HOME}/go/bin/vhs docs/examples/vhs/pomodoro.tape
+          #sudo apt update
+          #sudo apt install -y ffmpeg ttyd
+          #go install github.com/charmbracelet/vhs@v0.10.0
+          #${HOME}/go/bin/vhs docs/examples/vhs/download.tape
+          #${HOME}/go/bin/vhs docs/examples/vhs/pomodoro.tape
           ls -lahrtR
           diff pomodoro.ascii docs/examples/test/pomodoro.ascii
           diff download.ascii docs/examples/test/download.ascii
