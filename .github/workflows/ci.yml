@@ -1,12 +1,12 @@
 name: CI
 
-on:
-  push:
-    branches:
-      - main
-      - test/vhs-integration-test
-  pull_request:
-    branches: [main]
+on: push
+  # push:
+  #   branches:
+  #     - main
+  #     - test/vhs-integration-test
+  # pull_request:
+  #   branches: [main]
 
 jobs:
   ci:
