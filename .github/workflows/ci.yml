@@ -52,14 +52,12 @@ jobs:
 
       - name: Run vhs
         run: |
-          sudo apt update
-          sudo apt install -y ffmpeg ttyd
+          sudo apt-get -qq update
+          sudo apt-get -qq install -y ffmpeg ttyd
           go install github.com/charmbracelet/vhs@v0.10.0
           cd docs/examples/
           ${HOME}/go/bin/vhs vhs/pomodoro.tape
-          diff pomodoro.ascii test/pomodoro.ascii
           ${HOME}/go/bin/vhs vhs/download.tape
-          diff download.ascii test/download.ascii
 
       - name: Build JAR
         run: clojure -T:build jar

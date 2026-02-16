@@ -1,4 +1,4 @@
-Output pomodoro.ascii
+Output images/pomodoro.gif
 
 Set Shell bash
 

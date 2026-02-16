@@ -1,4 +1,4 @@
-Output download.ascii
+Output images/download.gif
 
 Set Shell bash
 
