@@ -5,7 +5,8 @@
    user input and verify the full input → parse → event pipeline."
   (:require
    [clojure.test :refer [deftest is testing]]
-   [charm.input.handler :as input])
+   [charm.input.handler :as input]
+   [charm.input.mouse :as mouse])
   (:import
    [java.io ByteArrayInputStream ByteArrayOutputStream]
    [org.jline.terminal TerminalBuilder]))
@@ -79,19 +80,19 @@
       (is (= {:type :backspace}
              (input/read-event terminal)))))
 
-  (testing "ctrl+c"
+  (testing "ctrl+c is intercepted by jline"
     (with-test-terminal [terminal "\u0003"]
-      (is (= {:type :ctrl+c}
+      (is (= nil
              (input/read-event terminal)))))
 
-  (testing "ctrl+d"
+  (testing "ctrl+d is intercepted by jline"
     (with-test-terminal [terminal "\u0004"]
-      (is (= {:type :ctrl+d}
+      (is (= {:type :runes :runes "d" :ctrl true}
              (input/read-event terminal)))))
 
-  (testing "ctrl+z"
+  (testing "ctrl+z is intercepted by jline"
     (with-test-terminal [terminal "\u001a"]
-      (is (= {:type :ctrl+z}
+      (is (= nil
              (input/read-event terminal))))))
 
 ;; ---------------------------------------------------------------------------
@@ -279,43 +280,45 @@
   (testing "mouse click at position"
     (with-test-terminal [terminal "\u001b[<0;10;5M"]
       (let [event (input/read-event terminal)]
-        (is (= :mouse (:type event)))
+        (is (mouse/mouse-event? event))
         (is (= 10 (:x event)))
         (is (= 5 (:y event)))
         (is (= :press (:action event)))
-        (is (= :left (:button event))))))
+        (is (mouse/left-click? event)))))
 
   (testing "mouse release"
     (with-test-terminal [terminal "\u001b[<0;10;5m"]
       (let [event (input/read-event terminal)]
-        (is (= :mouse (:type event)))
+        (is (mouse/mouse-event? event))
         (is (= :release (:action event))))))
 
   (testing "right mouse button"
     (with-test-terminal [terminal "\u001b[<2;15;20M"]
       (let [event (input/read-event terminal)]
-        (is (= :mouse (:type event)))
-        (is (= :right (:button event)))
+        (is (mouse/mouse-event? event))
+        (is (mouse/right-click? event))
         (is (= 15 (:x event)))
         (is (= 20 (:y event))))))
 
   (testing "middle mouse button"
     (with-test-terminal [terminal "\u001b[<1;5;10M"]
       (let [event (input/read-event terminal)]
-        (is (= :mouse (:type event)))
-        (is (= :middle (:button event))))))
+        (is (mouse/mouse-event? event))
+        (is (mouse/middle-click? event)))))
 
   (testing "mouse scroll up"
     (with-test-terminal [terminal "\u001b[<64;10;10M"]
       (let [event (input/read-event terminal)]
-        (is (= :mouse (:type event)))
-        (is (= :scroll-up (:button event))))))
+        (is (mouse/mouse-event? event))
+        (is (mouse/wheel? event))
+        (is (mouse/wheel-up? event)))))
 
   (testing "mouse scroll down"
     (with-test-terminal [terminal "\u001b[<65;10;10M"]
       (let [event (input/read-event terminal)]
-        (is (= :mouse (:type event)))
-        (is (= :scroll-down (:button event)))))))
+        (is (mouse/mouse-event? event))
+        (is (mouse/wheel? event))
+        (is (mouse/wheel-down? event))))))
 
 ;; ---------------------------------------------------------------------------
 ;; Multiple Sequential Events
