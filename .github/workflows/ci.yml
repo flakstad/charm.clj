@@ -56,10 +56,9 @@ jobs:
           sudo apt install -y ffmpeg ttyd
           go install github.com/charmbracelet/vhs@v0.10.0
           cd docs/examples/
-          ${HOME}/go/bin/vhs vhs/download.tape
           ${HOME}/go/bin/vhs vhs/pomodoro.tape
-          ls -lahrtR
           diff pomodoro.ascii test/pomodoro.ascii
+          ${HOME}/go/bin/vhs vhs/download.tape
           diff download.ascii test/download.ascii
 
       - name: Build JAR
