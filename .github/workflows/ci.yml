@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main test/vhs-integration-test]
+    branches:
+      - main
+      - test/vhs-integration-test
   pull_request:
     branches: [main]
 
