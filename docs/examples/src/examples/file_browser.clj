@@ -1,22 +1,29 @@
 (ns examples.file-browser
   "File browser demonstrating list component with a details pane."
-  (:require [charm.core :as charm]
-            [clojure.java.io :as io])
-  (:import [java.io File]
-           [java.text SimpleDateFormat]
-           [java.util Date]))
+  (:require
+    [charm.ansi.width :as w]
+    [charm.components.help :as help]
+    [charm.core :as charm]
+    [charm.style.border :as border]
+    [charm.style.core :as style]
+    [clojure.java.io :as io]
+    [clojure.string :as str])
+  (:import
+    [java.io File]
+    [java.text SimpleDateFormat]
+    [java.util Date]))
 
 (def title-style
-  (charm/style :fg charm/magenta :bold true))
+  (style/style :fg charm/magenta :bold true))
 
 (def path-style
-  (charm/style :fg 240))
+  (style/style :fg 240))
 
 (def detail-label-style
-  (charm/style :fg 240))
+  (style/style :fg 240))
 
 (def detail-value-style
-  (charm/style :fg charm/cyan))
+  (style/style :fg charm/cyan))
 
 (def help-bindings
   (charm/help-from-pairs
@@ -25,7 +32,10 @@
    "Backspace/h" "back"
    "q" "quit"))
 
-(def ^:private details-width 34)
+(def ^:private details-width 36)
+
+;; Header (title + path + blank line) + blank line before help + help line
+(def ^:private chrome-height 5)
 
 (defn format-size
   "Format file size in human-readable format."
@@ -74,15 +84,20 @@
                     (format-size (:size info)))
      :data info}))
 
-(defn- make-file-list [items width]
+(defn- list-width [term-width]
+  (max 20 (- term-width details-width)))
+
+(defn- list-height
+  "Number of list items visible. Each item takes 2 lines (title + description)."
+  [term-height]
+  (max 3 (quot (- term-height chrome-height) 2)))
+
+(defn- make-file-list [items term-width term-height]
   (charm/item-list items
-                   :height 15
-                   :width width
+                   :height (list-height term-height)
+                   :width (list-width term-width)
                    :show-descriptions true
                    :cursor-style (charm/style :fg charm/cyan :bold true)))
-
-(defn- list-width [term-width]
-  (max 20 (- term-width details-width 2)))
 
 (defn init []
   (let [start-path (System/getProperty "user.dir")
@@ -92,7 +107,8 @@
       :files files
       :items items
       :term-width 80
-      :file-list (make-file-list items (list-width 80))
+      :term-height 24
+      :file-list (make-file-list items 80 24)
       :help (charm/help help-bindings :width 60)}
      nil]))
 
@@ -106,7 +122,7 @@
                :current-path path
                :files files
                :items items
-               :file-list (make-file-list items (list-width (:term-width state)))))
+               :file-list (make-file-list items (:term-width state) (:term-height state))))
       state)))
 
 (defn go-up
@@ -136,10 +152,12 @@
 
     ;; Window resize
     (charm/window-size? msg)
-    (let [w (:width msg)]
+    (let [w (:width msg)
+          h (:height msg)]
       [(assoc state
               :term-width w
-              :file-list (make-file-list (:items state) (list-width w)))
+              :term-height h
+              :file-list (make-file-list (:items state) w h))
        nil])
 
     ;; Go up directory
@@ -164,36 +182,49 @@
   [state]
   (if-let [selected (charm/list-selected-item (:file-list state))]
     (let [info (:data selected)]
-      (str (charm/render detail-label-style "Name     ")
-           (charm/render detail-value-style (:name info)) "\n"
-           (charm/render detail-label-style "Type     ")
-           (charm/render detail-value-style (if (:directory? info) "Directory" "File")) "\n"
-           (charm/render detail-label-style "Size     ")
-           (charm/render detail-value-style (format-size (:size info))) "\n"
-           (charm/render detail-label-style "Modified ")
-           (charm/render detail-value-style (format-date (:modified info))) "\n"
-           (charm/render detail-label-style "Access   ")
-           (charm/render detail-value-style
+      (str (style/render detail-label-style "Name     ")
+           (style/render detail-value-style (:name info)) "\n"
+           (style/render detail-label-style "Type     ")
+           (style/render detail-value-style (if (:directory? info) "Directory" "File")) "\n"
+           (style/render detail-label-style "Size     ")
+           (style/render detail-value-style (format-size (:size info))) "\n"
+           (style/render detail-label-style "Modified ")
+           (style/render detail-value-style (format-date (:modified info))) "\n"
+           (style/render detail-label-style "Access   ")
+           (style/render detail-value-style
                          (str (when (:readable? info) "r")
                               (when (:writable? info) "w")
                               (when (:hidden? info) " (hidden)")))))
-    (charm/render detail-label-style "No file selected")))
+    (style/render detail-label-style "No file selected")))
+
+(defn- two-columns
+  "Join left and right text blocks into a fixed-width, fixed-height grid.
+   Each row is: left padded to left-width, then right. Rows are filled to height."
+  [left right left-width height]
+  (let [left-lines (str/split-lines left)
+        right-lines (str/split-lines right)
+        render-row (fn [i]
+                     (str (w/pad-right (nth left-lines i "") left-width)
+                          (nth right-lines i "")))]
+    (str/join "\n" (map render-row (range height)))))
 
 (defn view [state]
   (let [file-list-view (charm/list-view (:file-list state))
         details-view (render-details state)
-        details-style (charm/style :border charm/rounded-border
+        details-style (style/style :border border/rounded
                                    :border-fg 240
                                    :padding [0 1]
-                                   :width (- details-width 4))]
-    (str (charm/render title-style "File Browser") "\n"
-         (charm/render path-style (:current-path state)) "\n\n"
-         (charm/join-horizontal :top
-                                file-list-view
-                                "  "
-                                (charm/render details-style details-view))
-         "\n\n"
-         (charm/help-view (:help state)))))
+                                   :width (- details-width 2))
+        content-height (* (list-height (:term-height state)) 2)
+        left-w (list-width (:term-width state))]
+    (str (style/render title-style "File Browser") "\n"
+         (style/render path-style (:current-path state)) "\n\n"
+         (two-columns file-list-view
+                      (style/render details-style details-view)
+                      left-w
+                      content-height)
+         "\n"
+         (help/short-help-view (:help state)))))
 
 (defn -main [& _args]
   (charm/run {:init init

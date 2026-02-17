@@ -27,11 +27,14 @@
    [charm.components.paginator :as paginator]
    [charm.components.progress :as progress]
    [charm.components.spinner :as spinner]
+   [charm.components.table :as table]
    [charm.components.text-input :as text-input]
    [charm.components.timer :as timer]
+   [charm.components.viewport :as viewport]
    [charm.message :as msg]
    [charm.program :as prog]
    [charm.style.core :as style]
+   [charm.style.overlay :as overlay]
    [charm.terminal :as term]))
 
 ;; ---------------------------------------------------------------------------
@@ -73,7 +76,7 @@
 (def sequence-cmds prog/sequence-cmds)
 (def quit-cmd prog/quit-cmd)
 (def run prog/run)
-(def run-simple prog/run-simple)
+(def run-async prog/run-async)
 
 ;; ---------------------------------------------------------------------------
 ;; Re-exported from charm.style
@@ -107,24 +110,6 @@
 ;; Layout
 (def join-horizontal style/join-horizontal)
 (def join-vertical style/join-vertical)
-
-;; ---------------------------------------------------------------------------
-;; Convenience Macros
-;; ---------------------------------------------------------------------------
-
-(defmacro defprogram
-  "Define a TUI program with init, update, and view functions.
-
-   Usage:
-     (defprogram my-app
-       :init {:count 0}
-       :update (fn [state msg] ...)
-       :view (fn [state] ...))"
-  [name & {:keys [init update view] :as opts}]
-  `(def ~name
-     {:init ~init
-      :update ~update
-      :view ~view}))
 
 ;; ---------------------------------------------------------------------------
 ;; Re-exported from charm.components.spinner
@@ -222,8 +207,47 @@
 (def help help/help)
 (def help-init help/help-init)
 (def help-update help/help-update)
-(def help-view help/help-view)
+(def help-view-short help/short-help-view)
+(def help-view-full help/full-help-view)
 (def help-bindings help/bindings)
 (def help-set-bindings help/set-bindings)
 (def help-toggle-show-all help/toggle-show-all)
 (def help-from-pairs help/from-pairs)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.components.viewport
+;; ---------------------------------------------------------------------------
+
+(def viewport viewport/viewport)
+(def viewport-init viewport/viewport-init)
+(def viewport-update viewport/viewport-update)
+(def viewport-view viewport/viewport-view)
+(def viewport-content viewport/viewport-content)
+(def viewport-set-content viewport/viewport-set-content)
+(def viewport-set-dimensions viewport/viewport-set-dimensions)
+(def viewport-scroll-to viewport/viewport-scroll-to)
+(def viewport-scroll-percent viewport/viewport-scroll-percent)
+(def viewport-at-top? viewport/viewport-at-top?)
+(def viewport-at-bottom? viewport/viewport-at-bottom?)
+(def viewport-line-count viewport/viewport-line-count)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.components.table
+;; ---------------------------------------------------------------------------
+
+(def table table/table)
+(def table-init table/table-init)
+(def table-update table/table-update)
+(def table-view table/table-view)
+(def table-rows table/table-rows)
+(def table-set-rows table/table-set-rows)
+(def table-cursor table/table-cursor)
+(def table-selected-row table/table-selected-row)
+(def table-set-cursor table/table-set-cursor)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.style.overlay
+;; ---------------------------------------------------------------------------
+
+(def place-overlay overlay/place-overlay)
+(def center-overlay overlay/center-overlay)

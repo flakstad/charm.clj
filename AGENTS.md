@@ -19,6 +19,14 @@ Always use `:reload` when requiring namespaces to pick up changes.
 
 # Code Style
 
+## Keep it simple
+
+Always pick the simple solution and don't overthink. Later requirements are to be solved later. Don't optimize early.
+
+## Avoid duplication
+
+Prefer a solution that has logic just once and references this solution before you duplicate logic.
+
 ## Namespace Requires and Imports
 
 Always use proper `:require` and `:import` declarations in the `ns` form instead of fully qualified names in code.
@@ -48,6 +56,13 @@ Use [Conventional Commits](https://www.conventionalcommits.org/): `type: descrip
 Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`
 
 # Testing
+
+## Running examples
+
+You can run examples like the file-browser with this command
+```bash
+clojure -M -m examples.file-browser
+```
 
 ## Running Tests via REPL
 
