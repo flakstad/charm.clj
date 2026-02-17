@@ -169,11 +169,12 @@
      :focus-reporting - Report focus in/out (default: false)
      :fps           - Frames per second (default: 60)
      :hide-cursor   - Hide cursor (default: true)
+     :running?      - Atom to control the event loop externally (default: internal atom)
 
    The init function should return [initial-state cmd] or just initial-state.
    The update function receives (state msg) and returns [new-state cmd].
    Commands are optional and can be nil."
-  [{:keys [init update view] :as opts}]
+  [{:keys [init update view running?] :as opts}]
   (let [opts (merge (default-opts) opts)
         {:keys [alt-screen mouse focus-reporting fps hide-cursor]} opts
 
@@ -190,8 +191,8 @@
         ;; Message channel
         msg-chan (chan 256)
 
-        ;; State
-        running? (atom true)
+        ;; State - use externally provided atom if given
+        running? (or running? (atom true))
         last-size (atom {:width 0 :height 0})
 
         ;; Initialize state
@@ -234,7 +235,7 @@
         (render/render! renderer (view @state))
 
         ;; Drain any initial window-size message to avoid double render
-        (a/poll! msg-chan)
+        ;(a/poll! msg-chan)
 
         ;; Main event loop
         (loop []
@@ -302,25 +303,22 @@
         (term/close terminal)))))
 
 ;; ---------------------------------------------------------------------------
-;; Simple Run Helper
+;; Async Run
 ;; ---------------------------------------------------------------------------
 
-(defn run-simple
-  "Run a simple TUI program with minimal setup.
+(defn run-async
+  "Run a TUI program in the background. Returns a handle:
+     :quit!  - (fn [] ...) stop the program
+     :result - promise, deref to get the final state
 
-   Takes a map with:
-     :state  - Initial state
-     :update - (fn [state msg] [new-state cmd])
-     :view   - (fn [state] string)
-
-   Example:
-     (run-simple
-       {:state {:count 0}
-        :update (fn [state msg]
-                  (if (key-match? msg \"q\")
-                    [state quit-cmd]
-                    [(update state :count inc) nil]))
-        :view (fn [state]
-                (str \"Count: \" (:count state) \"\\nPress q to quit\"))})"
-  [{:keys [state update view] :as opts}]
-  (run (assoc opts :init state)))
+   Accepts the same options as `run`."
+  [opts]
+  (let [running? (atom true)
+        result (promise)
+        thread (doto (Thread.
+                      (fn []
+                        (deliver result (run (assoc opts :running? running?)))))
+                 (.setDaemon true)
+                 (.start))]
+    {:quit! (fn [] (reset! running? false))
+     :result result}))
