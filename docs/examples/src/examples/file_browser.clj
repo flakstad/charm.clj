@@ -1,8 +1,7 @@
 (ns examples.file-browser
   "File browser demonstrating list component with a details pane."
   (:require [charm.core :as charm]
-            [clojure.java.io :as io]
-            [clojure.string :as str])
+            [clojure.java.io :as io])
   (:import [java.io File]
            [java.text SimpleDateFormat]
            [java.util Date]))
@@ -11,22 +10,22 @@
   (charm/style :fg charm/magenta :bold true))
 
 (def path-style
-  (charm/style :fg charm/cyan))
-
-(def dir-style
-  (charm/style :fg charm/blue :bold true))
-
-(def file-style
-  (charm/style :fg charm/white))
+  (charm/style :fg 240))
 
 (def detail-label-style
   (charm/style :fg 240))
 
 (def detail-value-style
-  (charm/style :fg charm/green))
+  (charm/style :fg charm/cyan))
 
-(def hint-style
-  (charm/style :fg 240))
+(def help-bindings
+  (charm/help-from-pairs
+   "j/k" "navigate"
+   "Enter/l" "open"
+   "Backspace/h" "back"
+   "q" "quit"))
+
+(def ^:private details-width 34)
 
 (defn format-size
   "Format file size in human-readable format."
@@ -75,16 +74,26 @@
                     (format-size (:size info)))
      :data info}))
 
+(defn- make-file-list [items width]
+  (charm/item-list items
+                   :height 15
+                   :width width
+                   :show-descriptions true
+                   :cursor-style (charm/style :fg charm/cyan :bold true)))
+
+(defn- list-width [term-width]
+  (max 20 (- term-width details-width 2)))
+
 (defn init []
   (let [start-path (System/getProperty "user.dir")
         files (list-directory start-path)
         items (mapv file->list-item files)]
     [{:current-path start-path
       :files files
-      :file-list (charm/item-list items
-                                  :height 15
-                                  :show-descriptions true
-                                  :cursor-style (charm/style :fg charm/cyan :bold true))}
+      :items items
+      :term-width 80
+      :file-list (make-file-list items (list-width 80))
+      :help (charm/help help-bindings :width 60)}
      nil]))
 
 (defn navigate-to
@@ -93,13 +102,11 @@
   (let [files (list-directory path)]
     (if files
       (let [items (mapv file->list-item files)]
-        (-> state
-            (assoc :current-path path)
-            (assoc :files files)
-            (assoc :file-list (charm/item-list items
-                                               :height 15
-                                               :show-descriptions true
-                                               :cursor-style (charm/style :fg charm/cyan :bold true)))))
+        (assoc state
+               :current-path path
+               :files files
+               :items items
+               :file-list (make-file-list items (list-width (:term-width state)))))
       state)))
 
 (defn go-up
@@ -127,6 +134,14 @@
         (charm/key-match? msg "esc"))
     [state charm/quit-cmd]
 
+    ;; Window resize
+    (charm/window-size? msg)
+    (let [w (:width msg)]
+      [(assoc state
+              :term-width w
+              :file-list (make-file-list (:items state) (list-width w)))
+       nil])
+
     ;; Go up directory
     (or (charm/key-match? msg "backspace")
         (charm/key-match? msg "h")
@@ -149,34 +164,36 @@
   [state]
   (if-let [selected (charm/list-selected-item (:file-list state))]
     (let [info (:data selected)]
-      (str (charm/render detail-label-style "Name:     ")
+      (str (charm/render detail-label-style "Name     ")
            (charm/render detail-value-style (:name info)) "\n"
-           (charm/render detail-label-style "Type:     ")
+           (charm/render detail-label-style "Type     ")
            (charm/render detail-value-style (if (:directory? info) "Directory" "File")) "\n"
-           (charm/render detail-label-style "Size:     ")
+           (charm/render detail-label-style "Size     ")
            (charm/render detail-value-style (format-size (:size info))) "\n"
-           (charm/render detail-label-style "Modified: ")
+           (charm/render detail-label-style "Modified ")
            (charm/render detail-value-style (format-date (:modified info))) "\n"
-           (charm/render detail-label-style "Access:   ")
+           (charm/render detail-label-style "Access   ")
            (charm/render detail-value-style
                          (str (when (:readable? info) "r")
                               (when (:writable? info) "w")
                               (when (:hidden? info) " (hidden)")))))
-    "No file selected"))
+    (charm/render detail-label-style "No file selected")))
 
 (defn view [state]
   (let [file-list-view (charm/list-view (:file-list state))
-        details-view (render-details state)]
+        details-view (render-details state)
+        details-style (charm/style :border charm/rounded-border
+                                   :border-fg 240
+                                   :padding [0 1]
+                                   :width (- details-width 4))]
     (str (charm/render title-style "File Browser") "\n"
          (charm/render path-style (:current-path state)) "\n\n"
          (charm/join-horizontal :top
                                 file-list-view
-                                "    "
-                                (str (charm/render (charm/style :bold true) "Details") "\n"
-                                     (charm/render (charm/style :fg 240) (str (repeat 20 "-")) "\n")
-                                     details-view))
+                                "  "
+                                (charm/render details-style details-view))
          "\n\n"
-         (charm/render hint-style "j/k: navigate  Enter/l: open  Backspace/h: back  q: quit"))))
+         (charm/help-view (:help state)))))
 
 (defn -main [& _args]
   (charm/run {:init init
