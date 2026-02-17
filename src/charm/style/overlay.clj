@@ -102,16 +102,16 @@
   (let [[base-w base-h] (text-dimensions base)
         [overlay-w overlay-h] (text-dimensions overlay)
         [x y] (case position
-                 :center       [(quot (- base-w overlay-w) 2)
-                                (quot (- base-h overlay-h) 2)]
-                 :top-left     [0 0]
-                 :top-right    [(- base-w overlay-w) 0]
-                 :top-center   [(quot (- base-w overlay-w) 2) 0]
-                 :bottom-left  [0 (- base-h overlay-h)]
-                 :bottom-right [(- base-w overlay-w) (- base-h overlay-h)]
-                 :bottom-center [(quot (- base-w overlay-w) 2)
-                                 (- base-h overlay-h)]
-                 :center-left  [0 (quot (- base-h overlay-h) 2)]
-                 :center-right [(- base-w overlay-w)
-                                (quot (- base-h overlay-h) 2)])]
+                :center       [(quot (- base-w overlay-w) 2)
+                               (quot (- base-h overlay-h) 2)]
+                :top-left     [0 0]
+                :top-right    [(- base-w overlay-w) 0]
+                :top-center   [(quot (- base-w overlay-w) 2) 0]
+                :bottom-left  [0 (- base-h overlay-h)]
+                :bottom-right [(- base-w overlay-w) (- base-h overlay-h)]
+                :bottom-center [(quot (- base-w overlay-w) 2)
+                                (- base-h overlay-h)]
+                :center-left  [0 (quot (- base-h overlay-h) 2)]
+                :center-right [(- base-w overlay-w)
+                               (quot (- base-h overlay-h) 2)])]
     (place-overlay base overlay (max 0 x) (max 0 y))))

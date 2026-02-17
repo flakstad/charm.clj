@@ -24,5 +24,8 @@
                  slipset/deps-deploy {:mvn/version "0.2.2"}}
           :ns-default build}
 
-  :lint {:extra-deps {io.github.clj-kondo/clj-kondo {:mvn/version "2026.01.19"}}
-         :main-opts ["-m" "clj-kondo.main"]}}}
+  :format {:extra-deps {dev.weavejester/cljfmt {:mvn/version "0.16.0"}}
+           :main-opts ["-m" "cljfmt.main" "check" "src" "test"]}
+
+  :lint {:extra-deps {clj-kondo/clj-kondo {:mvn/version "2026.01.19"}}
+         :main-opts ["-m" "clj-kondo.main" "--fail-level" "error" "--lint" "src" "test"]}}}
