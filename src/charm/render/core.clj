@@ -5,8 +5,11 @@
    the terminal by only redrawing changed content."
   (:require [charm.render.screen :as scr]
             [charm.terminal :as term])
-  (:import [org.jline.terminal Terminal]
+  (:import [java.util ArrayList Collection]
+           [org.jline.terminal Terminal]
            [org.jline.utils Display AttributedString]))
+
+(set! *warn-on-reflection* true)
 
 ;; ---------------------------------------------------------------------------
 ;; Renderer State
@@ -193,9 +196,10 @@
                             (scr/truncate-line line width)))
                          lines)]
     ;; Display.update handles all the diffing internally.
-    ;; Convert to ArrayList because JLine mutates the list internally
-    ;; (e.g. calling .remove) and Clojure vectors are immutable.
-    (.update display (java.util.ArrayList. attributed) -1)))
+    ;; Build a mutable list explicitly (avoid reflective ctor dispatch in native-image).
+    (let [^ArrayList mutable-lines (ArrayList.)]
+      (.addAll mutable-lines ^Collection attributed)
+      (.update display mutable-lines -1))))
 
 (defn repaint!
   "Force a full repaint on next render."

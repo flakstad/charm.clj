@@ -8,6 +8,8 @@
    [org.jline.terminal Terminal]
    [org.jline.utils InfoCmp$Capability]))
 
+(set! *warn-on-reflection* true)
+
 ;; ---------------------------------------------------------------------------
 ;; Key Event Definitions
 ;; ---------------------------------------------------------------------------
@@ -129,8 +131,9 @@
 (defn- bind-key!
   "Bind a sequence to an event in the keymap.
    Sequence should be WITHOUT the ESC prefix (e.g., \"[A\" not \"\\e[A\")."
-  [^KeyMap keymap seq event]
-  (.bind keymap event seq))
+  [^KeyMap keymap ^String seq event]
+  ;; Use explicit type hinting to avoid reflective dispatch in native-image.
+  (.bind keymap event ^CharSequence seq))
 
 (defn- bind-from-capability!
   "Bind a key from terminal capability, stripping ESC prefix.
