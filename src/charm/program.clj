@@ -153,6 +153,55 @@
       (reset! last-size {:width width :height height})
       (a/put! msg-chan (window-size-msg width height)))))
 
+(defn- next-msg!!
+  "Read next message with low idle wait:
+   - consume immediately if queue already has data
+   - otherwise block up to `timeout-ms` waiting for one message"
+  [msg-chan timeout-ms]
+  (or (a/poll! msg-chan)
+      (let [[v port] (a/alts!! [msg-chan (a/timeout timeout-ms)] :priority true)]
+        (when (= port msg-chan)
+          v))))
+
+(defn- drain-msg-burst!
+  "Process a burst of already-queued messages after `first-msg`.
+
+   Returns [next-state should-render?]."
+  [state first-msg running? msg-chan update-fn execute-cmd-fn on-window-size!]
+  (loop [s state
+         m first-msg
+         render? false]
+    (cond
+      ;; Quit message
+      (msg/quit? m)
+      (do
+        (reset! running? false)
+        [s false])
+
+      ;; Error message
+      (= :error (:type m))
+      (do
+        (reset! running? false)
+        (throw (:error m)))
+
+      ;; Window size
+      (= :window-size (:type m))
+      (do
+        (on-window-size! (:width m) (:height m))
+        (let [[new-state cmd] (update-fn s m)]
+          (execute-cmd-fn cmd msg-chan)
+          (if-let [next-msg (and @running? (a/poll! msg-chan))]
+            (recur new-state next-msg true)
+            [new-state true])))
+
+      ;; Regular message
+      :else
+      (let [[new-state cmd] (update-fn s m)]
+        (execute-cmd-fn cmd msg-chan)
+        (if-let [next-msg (and @running? (a/poll! msg-chan))]
+          (recur new-state next-msg true)
+          [new-state true])))))
+
 ;; ---------------------------------------------------------------------------
 ;; Main Program
 ;; ---------------------------------------------------------------------------
@@ -240,38 +289,19 @@
         ;; Main event loop
         (loop []
           (when @running?
-            (when-let [m (a/<!! (a/timeout 10))]
-             ;; Timeout - just continue
-              nil)
-
-            (when-let [m (a/poll! msg-chan)]
-              (cond
-               ;; Quit message
-                (msg/quit? m)
-                (reset! running? false)
-
-               ;; Error message
-                (= :error (:type m))
-                (do
-                  (reset! running? false)
-                  (throw (:error m)))
-
-               ;; Window size
-                (= :window-size (:type m))
-                (do
-                  (render/update-size! renderer (:width m) (:height m))
-                  (let [[new-state cmd] (update @state m)]
-                    (reset! state new-state)
-                    (execute-cmd! cmd msg-chan)
-                    (render/render! renderer (view new-state))))
-
-               ;; Regular message
-                :else
-                (let [[new-state cmd] (update @state m)]
-                  (reset! state new-state)
-                  (execute-cmd! cmd msg-chan)
-                  (render/render! renderer (view new-state)))))
-
+            (when-let [first-msg (next-msg!! msg-chan 10)]
+              (let [[next-state should-render?] (drain-msg-burst!
+                                                 @state
+                                                 first-msg
+                                                 running?
+                                                 msg-chan
+                                                 update
+                                                 execute-cmd!
+                                                 (fn [w h]
+                                                   (render/update-size! renderer w h)))]
+                (reset! state next-state)
+                (when (and @running? should-render?)
+                  (render/render! renderer (view next-state)))))
             (when @running?
               (recur))))
 
