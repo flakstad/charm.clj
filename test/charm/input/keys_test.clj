@@ -40,7 +40,8 @@
     (is (= {:type :insert} (k/parse-escape-sequence "[2~")))
     (is (= {:type :delete} (k/parse-escape-sequence "[3~")))
     (is (= {:type :page-up} (k/parse-escape-sequence "[5~")))
-    (is (= {:type :page-down} (k/parse-escape-sequence "[6~"))))
+    (is (= {:type :page-down} (k/parse-escape-sequence "[6~")))
+    (is (= {:type :tab :shift true} (k/parse-escape-sequence "[Z"))))
 
   (testing "function keys"
     (is (= {:type :f1} (k/parse-escape-sequence "OP")))

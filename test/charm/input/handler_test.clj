@@ -38,7 +38,8 @@
     (is (= {:type :home} (h/parse-input 27 "[H")))
     (is (= {:type :end} (h/parse-input 27 "[F")))
     (is (= {:type :page-up} (h/parse-input 27 "[5~")))
-    (is (= {:type :page-down} (h/parse-input 27 "[6~"))))
+    (is (= {:type :page-down} (h/parse-input 27 "[6~")))
+    (is (= {:type :tab :shift true} (h/parse-input 27 "[Z"))))
 
   (testing "modifiers on arrows"
     (is (= {:type :up :shift true} (h/parse-input 27 "[1;2A")))
