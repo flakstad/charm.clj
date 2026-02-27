@@ -19,10 +19,9 @@
           (is (map? size))
           (is (contains? size :width))
           (is (contains? size :height))
-          ;; In non-interactive environments (CI, tests), JLine creates a "dumb terminal"
-          ;; which may return 0 for dimensions. We just verify they're non-negative integers.
-          (is (nat-int? (:width size)))
-          (is (nat-int? (:height size))))
+          ;; We always return usable dimensions via terminal/env/default fallbacks.
+          (is (pos-int? (:width size)))
+          (is (pos-int? (:height size))))
         (finally
           (term/close t))))))
 

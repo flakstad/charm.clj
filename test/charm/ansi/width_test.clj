@@ -48,7 +48,13 @@
 
   (testing "nil/empty handling"
     (is (nil? (w/truncate nil 10)))
-    (is (= "" (w/truncate "" 10)))))
+    (is (= "" (w/truncate "" 10))))
+
+  (testing "preserves ANSI styling when truncating"
+    (let [styled "\033[31mhello world\033[0m"
+          out (w/truncate styled 8)]
+      (is (re-find #"\u001b\[[0-9;]*m" out))
+      (is (= "hello..." (w/strip-ansi out))))))
 
 (deftest pad-test
   (testing "pad-right"

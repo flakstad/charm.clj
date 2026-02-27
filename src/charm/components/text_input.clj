@@ -11,6 +11,7 @@
      (text-input-view my-input)"
   (:require [charm.style.core :as style]
             [charm.message :as msg]
+            [charm.render.cursor :as cursor]
             [clojure.string :as str]))
 
 ;; ---------------------------------------------------------------------------
@@ -94,7 +95,7 @@
    :placeholder-style (or placeholder-style
                           (style/style :fg 240))
    :cursor-style (or cursor-style
-                     (style/style :reverse true))
+                     (style/style :bg 27 :fg 255 :bold true))
    :keys default-keys})
 
 ;; ---------------------------------------------------------------------------
@@ -393,12 +394,14 @@
       ;; Show placeholder
       (let [placeholder-str (if focused
                               ;; Show cursor at start when focused
-                              (str (style/render cursor-style
-                                                 (subs placeholder 0 1))
+                              (str (cursor/mark (subs placeholder 0 1))
                                    (style/render placeholder-style
                                                  (subs placeholder 1)))
                               (style/render placeholder-style placeholder))]
-        (str prompt-str placeholder-str))
+        (let [s (str prompt-str placeholder-str)]
+          (if focused
+            (cursor/render-cursor-markers s cursor-style)
+            s)))
 
       ;; Show value with cursor
       (let [text (apply str value)
@@ -414,13 +417,14 @@
             before-str (if text-style
                          (style/render text-style before)
                          before)
-            cursor-str (if focused
-                         (style/render cursor-style cursor-char)
-                         cursor-char)
+            cursor-str (if focused (cursor/mark cursor-char) cursor-char)
             after-str (if text-style
                         (style/render text-style after)
                         after)]
-        (str prompt-str before-str cursor-str after-str)))))
+        (let [s (str prompt-str before-str cursor-str after-str)]
+          (if focused
+            (cursor/render-cursor-markers s cursor-style)
+            s))))))
 
 ;; ---------------------------------------------------------------------------
 ;; Text Input Init

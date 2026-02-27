@@ -14,6 +14,7 @@
         (is (some? @renderer))
         (is (= 60 (:fps @renderer)))
         (is (false? (:alt-screen @renderer)))
+        (is (false? (:in-alt-screen @renderer)))
         (is (true? (:hide-cursor @renderer)))
         (is (nat-int? (:width @renderer)))
         (is (nat-int? (:height @renderer)))
@@ -26,6 +27,7 @@
       (try
         (is (= 30 (:fps @renderer)))
         (is (true? (:alt-screen @renderer)))
+        (is (false? (:in-alt-screen @renderer)))
         (finally
           (term/close terminal))))))
 

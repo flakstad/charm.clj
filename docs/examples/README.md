@@ -34,6 +34,18 @@ clj -M -m examples.form
 clj -M -m examples.counter
 ```
 ![counter gif](images/counter.gif)
+```
+clj -M -m examples.textarea-only
+```
+Textarea-only component demo.
+```
+clj -M -m examples.markdown-only
+```
+Markdown-only renderer demo.
+```
+clj -M -m examples.textarea-markdown
+```
+Textarea + markdown live preview demo.
 
 ## native-image compilation
 
@@ -42,4 +54,3 @@ clj -T:build all
 native-image -jar target/timer.jar -o timer
 ./timer -n Pomodoro 30m
 ```
-

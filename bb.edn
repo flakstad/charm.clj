@@ -12,6 +12,15 @@
   test {:doc "Run tests"
         :task (clojure "-M:test")}
 
+  test:textarea {:doc "Run textarea component tests only"
+                 :task (clojure "-M:test" "--namespace" "charm.components.textarea-test")}
+
+  test:markdown {:doc "Run markdown renderer tests only"
+                 :task (clojure "-M:test" "--namespace" "charm.render.markdown-test")}
+
+  test:components {:doc "Run textarea + markdown component tests"
+                   :depends [test:textarea test:markdown]}
+
   build {:doc "Build jar"
          :task (clojure "-T:build jar")}
 

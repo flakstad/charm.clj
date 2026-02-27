@@ -4,6 +4,7 @@
    Provides a high-level rendering API that efficiently updates
    the terminal by only redrawing changed content."
   (:require [charm.render.screen :as scr]
+            [clojure.string :as str]
             [charm.terminal :as term])
   (:import [java.util ArrayList Collection]
            [org.jline.terminal Terminal]
@@ -21,16 +22,22 @@
    Options:
      :fps         - Target frames per second (default: 60)
      :alt-screen  - Use alternate screen buffer (default: false)
+     :mode        - :display (JLine diff) or :raw (full ANSI repaint)
      :hide-cursor - Hide cursor during rendering (default: true)"
-  [^Terminal terminal & {:keys [fps alt-screen hide-cursor]
-                         :or {fps 60 alt-screen false hide-cursor true}}]
+  [^Terminal terminal & {:keys [fps alt-screen mode hide-cursor]
+                         :or {fps 60 alt-screen false mode :display hide-cursor true}}]
   (let [{:keys [width height]} (term/get-size terminal)
-        display (doto (Display. terminal false)
+        width (long (max 1 (or width 1)))
+        height (long (max 1 (or height 1)))
+        display (doto (Display. terminal (boolean alt-screen))
+                  (.setDelayLineWrap true)
                   (.resize height width))]
     (atom {:terminal terminal
            :display display
            :fps fps
            :alt-screen alt-screen
+           :in-alt-screen false
+           :mode mode
            :hide-cursor hide-cursor
            :width width
            :height height
@@ -74,19 +81,19 @@
 (defn enter-alt-screen!
   "Enter the alternate screen buffer."
   [renderer]
-  (when-not (:alt-screen @renderer)
+  (when-not (:in-alt-screen @renderer)
     (let [terminal (:terminal @renderer)]
       (term/enter-alt-screen terminal)
       (term/clear-screen terminal)
       (term/cursor-home terminal))
-    (swap! renderer assoc :alt-screen true)))
+    (swap! renderer assoc :in-alt-screen true)))
 
 (defn exit-alt-screen!
   "Exit the alternate screen buffer."
   [renderer]
-  (when (:alt-screen @renderer)
+  (when (:in-alt-screen @renderer)
     (term/exit-alt-screen (:terminal @renderer))
-    (swap! renderer assoc :alt-screen false)))
+    (swap! renderer assoc :in-alt-screen false)))
 
 (defn clear-screen!
   "Clear the screen."
@@ -177,29 +184,42 @@
 ;; Rendering
 ;; ---------------------------------------------------------------------------
 
+(defn- prepare-lines
+  [content width height]
+  (let [content (if (empty? content) " " content)
+        lines (scr/content->lines content)
+        lines (if (and (pos? height) (> (count lines) height))
+                (subvec (vec lines) (- (count lines) height))
+                lines)]
+    (mapv #(scr/truncate-line % width) lines)))
+
+(defn- render-raw!
+  [renderer content]
+  (let [{:keys [^Terminal terminal width height]} @renderer
+        lines (prepare-lines content width height)
+        ^java.io.PrintWriter writer (.writer terminal)]
+    ;; Raw mode preserves ANSI from component/view output exactly.
+    (.print writer "\u001b[H\u001b[2J")
+    (.print writer (str/join "\n" lines))
+    (.flush writer)))
+
 (defn render!
   "Render content to the terminal using JLine's Display for efficient diffing.
 
    Content can be a string (multi-line) which will be split
    and rendered line by line."
   [renderer content]
-  (let [{:keys [^Display display width height]} @renderer
-        content (if (empty? content) " " content)
-        lines (scr/content->lines content)
-        ;; Truncate to height (keep last lines if overflow)
-        lines (if (and (pos? height) (> (count lines) height))
-                (subvec (vec lines) (- (count lines) height))
-                lines)
-        ;; Truncate each line to width and convert to AttributedString
-        attributed (mapv (fn [line]
-                           (AttributedString/fromAnsi
-                            (scr/truncate-line line width)))
-                         lines)]
-    ;; Display.update handles all the diffing internally.
-    ;; Build a mutable list explicitly (avoid reflective ctor dispatch in native-image).
-    (let [^ArrayList mutable-lines (ArrayList.)]
-      (.addAll mutable-lines ^Collection attributed)
-      (.update display mutable-lines -1))))
+  (if (= :raw (:mode @renderer))
+    (render-raw! renderer content)
+    (let [{:keys [^Display display width height]} @renderer
+          lines (prepare-lines content width height)
+          ;; Convert each line to AttributedString
+          attributed (mapv #(AttributedString/fromAnsi %) lines)]
+      ;; Display.update handles all the diffing internally.
+      ;; Build a mutable list explicitly (avoid reflective ctor dispatch in native-image).
+      (let [^ArrayList mutable-lines (ArrayList.)]
+        (.addAll mutable-lines ^Collection attributed)
+        (.update display mutable-lines -1)))))
 
 (defn repaint!
   "Force a full repaint on next render."
@@ -214,7 +234,11 @@
 (defn update-size!
   "Update the renderer's size (call on window resize)."
   [renderer width height]
-  (let [^Display display (:display @renderer)]
+  (let [width (long (max 1 (or width 1)))
+        height (long (max 1 (or height 1)))
+        ^Display display (:display @renderer)]
+    ;; Avoid splitting old attributed lines during resize; this can corrupt ANSI state.
+    (.reset display)
     (.resize display height width)
     (swap! renderer assoc :width width :height height)))
 
@@ -240,8 +264,8 @@
 (defn stop!
   "Stop the renderer and restore terminal state."
   [renderer]
-  (let [{:keys [alt-screen hide-cursor]} @renderer]
-    (when alt-screen
+  (let [{:keys [in-alt-screen hide-cursor]} @renderer]
+    (when in-alt-screen
       (exit-alt-screen! renderer))
     (when hide-cursor
       (show-cursor! renderer))

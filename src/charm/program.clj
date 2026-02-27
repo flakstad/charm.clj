@@ -61,6 +61,7 @@
   {:alt-screen false
    :mouse nil  ; nil, :normal, :cell, or :all
    :focus-reporting false
+   :render-mode :display
    :fps 60
    :hide-cursor true})
 
@@ -225,7 +226,7 @@
    Commands are optional and can be nil."
   [{:keys [init update view running?] :as opts}]
   (let [opts (merge (default-opts) opts)
-        {:keys [alt-screen mouse focus-reporting fps hide-cursor]} opts
+        {:keys [alt-screen mouse focus-reporting render-mode fps hide-cursor]} opts
 
         ;; Create terminal and save original attributes for restoration
         terminal (term/create-terminal)
@@ -235,6 +236,7 @@
         renderer (render/create-renderer terminal
                                          :fps fps
                                          :alt-screen alt-screen
+                                         :mode render-mode
                                          :hide-cursor hide-cursor)
 
         ;; Message channel

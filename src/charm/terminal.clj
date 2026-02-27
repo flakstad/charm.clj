@@ -1,15 +1,100 @@
 (ns charm.terminal
   "JLine terminal wrapper for charm.clj"
+  (:require
+   [clojure.string :as str])
   (:import [org.jline.terminal Terminal TerminalBuilder Attributes]
            [org.jline.utils InfoCmp$Capability]))
+
+(set! *warn-on-reflection* true)
+
+(defn- parse-positive-long
+  [s]
+  (try
+    (let [n (Long/parseLong (str s))]
+      (when (pos? n) n))
+    (catch Exception _
+      nil)))
+
+(defn- env-size
+  []
+  (let [w (parse-positive-long (System/getenv "COLUMNS"))
+        h (parse-positive-long (System/getenv "LINES"))]
+    {:width w :height h}))
+
+(defn- dumb-terminal?
+  [^Terminal terminal]
+  (let [t (some-> terminal .getType str str/lower-case)]
+    (or (str/blank? t)
+        (str/starts-with? t "dumb"))))
+
+(defn- term-size*
+  [^Terminal terminal]
+  (let [size (.getSize terminal)]
+    {:width (long (or (.getColumns size) 0))
+     :height (long (or (.getRows size) 0))}))
+
+(defn- fallback-term-type
+  []
+  (let [t (some-> (System/getenv "TERM") str str/trim not-empty str/lower-case)]
+    (cond
+      (or (nil? t) (str/starts-with? t "dumb"))
+      "xterm-256color"
+
+      (or (str/includes? t "256color")
+          (str/includes? t "truecolor")
+          (str/includes? t "24bit"))
+      t
+
+      :else
+      "xterm-256color")))
+
+(defn- color-capable?
+  [^Terminal terminal]
+  (let [n (.getNumericCapability terminal InfoCmp$Capability/max_colors)]
+    (and (some? n)
+         (>= (long n) 8))))
+
+(defn- build-system-terminal
+  []
+  (try
+    (-> (TerminalBuilder/builder)
+        (.system true)
+        (.ffm true)
+        (.build))
+    (catch Throwable _
+      (-> (TerminalBuilder/builder)
+          (.system true)
+          (.build)))))
+
+(defn- build-stream-terminal
+  []
+  (-> (TerminalBuilder/builder)
+      (.system false)
+      (.streams System/in System/out)
+      (.type (fallback-term-type))
+      (.build)))
 
 (defn create-terminal
   "Create a JLine terminal with system I/O and FFM as native interface."
   []
-  (-> (TerminalBuilder/builder)
-      (.system true)
-      (.ffm true)
-      (.build)))
+  (let [^Terminal sys (build-system-terminal)
+        {:keys [width height]} (term-size* sys)]
+    (if (and (not (dumb-terminal? sys))
+             (pos? width)
+             (pos? height)
+             (color-capable? sys))
+      sys
+      (try
+        ;; In some environments (notably bb examples), JLine resolves a 0x0 dumb
+        ;; system terminal or misses color capabilities. A stream-backed external
+        ;; terminal preserves ANSI styles and usable dimensions.
+        (let [ext (build-stream-terminal)]
+          (try
+            (.close sys)
+            (catch Exception _))
+          ext)
+        (catch Throwable _
+          sys)))))
 
 (defn enter-raw-mode
   "Put terminal in raw mode for character-by-character input.
@@ -32,9 +117,16 @@
 (defn get-size
   "Get terminal dimensions as {:width cols :height rows}."
   [^Terminal terminal]
-  (let [size (.getSize terminal)]
-    {:width (.getColumns size)
-     :height (.getRows size)}))
+  (let [{:keys [width height]} (term-size* terminal)
+        env (env-size)
+        width (or (when (pos? width) width)
+                  (:width env)
+                  80)
+        height (or (when (pos? height) height)
+                   (:height env)
+                   24)]
+    {:width (long width)
+     :height (long height)}))
 
 (defn get-reader
   "Get the terminal's non-blocking reader."

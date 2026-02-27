@@ -27,5 +27,14 @@
   timer {:doc "Run timer example"
          :task (exec 'examples.timer/-main)}
 
+  textarea {:doc "Run textarea-only component demo"
+            :task (exec 'examples.textarea-only/-main)}
+
+  markdown {:doc "Run markdown-only renderer demo"
+            :task (exec 'examples.markdown-only/-main)}
+
+  textarea-markdown {:doc "Run textarea + markdown preview example"
+                     :task (exec 'examples.textarea-markdown/-main)}
+
   todos {:doc "Run todos example"
          :task (exec 'examples.todos/-main)}}}

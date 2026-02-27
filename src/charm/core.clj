@@ -29,10 +29,13 @@
    [charm.components.spinner :as spinner]
    [charm.components.table :as table]
    [charm.components.text-input :as text-input]
+   [charm.components.textarea :as textarea]
    [charm.components.timer :as timer]
    [charm.components.viewport :as viewport]
    [charm.message :as msg]
    [charm.program :as prog]
+   [charm.render.cursor :as cursor]
+   [charm.render.markdown :as markdown]
    [charm.style.core :as style]
    [charm.style.overlay :as overlay]
    [charm.terminal :as term]))
@@ -140,6 +143,25 @@
 (def echo-normal text-input/echo-normal)
 (def echo-password text-input/echo-password)
 (def echo-none text-input/echo-none)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.components.textarea
+;; ---------------------------------------------------------------------------
+
+(def textarea textarea/textarea)
+(def textarea-init textarea/textarea-init)
+(def textarea-update textarea/textarea-update)
+(def textarea-view textarea/textarea-view)
+(def textarea-value textarea/value)
+(def textarea-set-value textarea/set-value)
+(def textarea-cursor-index textarea/cursor-index)
+(def textarea-set-cursor-index textarea/set-cursor-index)
+(def textarea-cursor-row textarea/cursor-row)
+(def textarea-cursor-column textarea/cursor-column)
+(def textarea-focus textarea/focus)
+(def textarea-blur textarea/blur)
+(def textarea-focused? textarea/focused?)
+(def textarea-reset textarea/reset)
 
 ;; ---------------------------------------------------------------------------
 ;; Re-exported from charm.components.list
@@ -251,3 +273,17 @@
 
 (def place-overlay overlay/place-overlay)
 (def center-overlay overlay/center-overlay)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.render.cursor
+;; ---------------------------------------------------------------------------
+
+(def cursor-mark cursor/mark)
+(def render-cursor-markers cursor/render-cursor-markers)
+
+;; ---------------------------------------------------------------------------
+;; Re-exported from charm.render.markdown
+;; ---------------------------------------------------------------------------
+
+(def markdown-lines markdown/markdown-lines)
+(def render-markdown markdown/render-markdown)

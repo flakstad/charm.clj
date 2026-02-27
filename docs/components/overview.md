@@ -58,6 +58,7 @@ Components integrate with charm's program loop which handles:
 |-----------|-------------|------------|
 | [spinner](spinner.md) | Animated loading indicators | Yes |
 | [text-input](text-input.md) | Text entry with cursor editing | No |
+| [textarea](textarea.md) | Multi-line text entry with cursor editing | No |
 | [list](list.md) | Scrollable item selection | No |
 | [paginator](paginator.md) | Page navigation indicators | No |
 | [timer](timer.md) | Countdown/count-up timer | Yes |

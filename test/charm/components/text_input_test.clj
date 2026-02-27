@@ -1,5 +1,6 @@
 (ns charm.components.text-input-test
   (:require
+   [charm.ansi.width :as aw]
    [charm.components.text-input :as ti]
    [charm.message :as msg]
    [clojure.string :as str]
@@ -142,7 +143,23 @@
     (let [input (ti/text-input :value "secret" :echo-mode :password :focused false)
           view (ti/text-input-view input)]
       (is (not (str/includes? view "secret")))
-      (is (str/includes? view "******")))))
+      (is (str/includes? view "******"))))
+
+  (testing "focused view renders a styled cursor cell"
+    (let [input (-> (ti/text-input :prompt "" :value "abc" :focused true)
+                    (assoc :pos 1))
+          view (ti/text-input-view input)]
+      (is (re-find #"\u001b\[[0-9;]*m" view))
+      (is (not (str/includes? view "\u0001")))
+      (is (not (str/includes? view "\u0002")))))
+
+  (testing "cursor at end of input remains visible"
+    (let [input (-> (ti/text-input :prompt "" :value "abc" :focused true)
+                    (assoc :pos 3))
+          view (ti/text-input-view input)
+          plain (aw/strip-ansi view)]
+      (is (= 4 (count plain)))
+      (is (= \u00a0 (last plain))))))
 
 (deftest text-input-init-test
   (testing "init returns input and nil command"

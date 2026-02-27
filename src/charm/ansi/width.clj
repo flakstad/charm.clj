@@ -53,7 +53,9 @@
               target-width (- width tail-width)]
           (if (neg? target-width)
             ""
-            (str (.columnSubSequence attr-s 0 target-width) tail)))))))
+            ;; Preserve ANSI styles when truncating styled strings.
+            (str (.toAnsi ^AttributedString (.columnSubSequence attr-s 0 target-width))
+                 tail)))))))
 
 (defn pad-right
   "Pad a string on the right to reach a target display width."
